@@ -92,4 +92,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (window.guestSchedule) window.guestSchedule.refresh();
         if (window.adminSchedule) window.adminSchedule.refresh('');
     });
+
+    document.getElementById('btn-change-profile')?.addEventListener('click', () => {
+        console.log('🔄 [AUTH] Changing admin profile...');
+        adminView.style.display = 'none';
+        roleModal.style.display = 'none';
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('token');
+        localStorage.removeItem('selectedAdminProfile');
+        window.selectedAdminProfile = null;
+        document.getElementById('admin-user').value = '';
+        document.getElementById('admin-pass').value = '';
+        
+        // Show profile selector
+        window.changeProfile();
+    });
 });

@@ -9,8 +9,45 @@
     <link rel="stylesheet" href="frontend/styles.css">
 </head>
 <body class="bg-light">
+    <!-- Profile Selection Modal (Appears First) -->
+    <div id="profile-modal" class="custom-modal" style="display: flex;">
+        <div class="modal-content shadow text-center position-relative">
+            <!-- Language Selector -->
+            <div class="lang-selector position-absolute top-0 end-0 m-3 text-start">
+                <button id="lang-btn" class="btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
+                <div id="lang-menu" class="lang-menu shadow-sm border rounded bg-white mt-1">
+                    <div class="lang-option p-2 border-bottom" data-lang="fr">🇫🇷 Français</div>
+                    <div class="lang-option p-2" data-lang="en">🇬🇧 English</div>
+                </div>
+            </div>
+            
+            <h2 class="fw-bold mt-4 mb-3" id="profile-title" data-i18n="profileTitle">Choisissez votre coach</h2>
+            <p class="text-muted mb-5" id="profile-subtitle" data-i18n="profileSubtitle">Sélectionnez le coach avec lequel vous souhaitez travailler :</p>
+            
+            <div class="d-flex justify-content-center gap-5 mt-4 flex-wrap">
+                <!-- Martine Profile -->
+                <div class="profile-card text-center cursor-pointer" id="profile-martine" style="width: 150px; cursor: pointer;">
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s ease;">
+                        <span style="font-size: 60px;">💪</span>
+                    </div>
+                    <h3 class="fw-bold mt-3" style="color: #333;">Martine</h3>
+                    <p class="text-muted small" data-i18n="martineDesc">Coach de fitness personnel</p>
+                </div>
+
+                <!-- Dani Profile -->
+                <div class="profile-card text-center cursor-pointer" id="profile-dani" style="width: 150px; cursor: pointer;">
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s ease;">
+                        <span style="font-size: 60px;">🎯</span>
+                    </div>
+                    <h3 class="fw-bold mt-3" style="color: #333;">Dani</h3>
+                    <p class="text-muted small" data-i18n="daniDesc">Coach de développement personnel</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Role Selection Modal -->
-    <div id="role-modal" class="custom-modal" style="display: flex;">
+    <div id="role-modal" class="custom-modal" style="display: none;">
         <div class="modal-content shadow text-center position-relative">
             <!-- Language Selector -->
             <div class="lang-selector position-absolute top-0 end-0 m-3 text-start">
@@ -148,10 +185,11 @@
     <div id="admin-view" class="container-fluid py-4" style="display: none;">
         <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border">
             <div>
-                <h1 class="h3 mb-0 fw-bold text-success" data-i18n="adminDashboard">Tableau de bord Admin</h1>
+                <h1 class="h3 mb-0 fw-bold text-success" id="admin-title" data-i18n="adminDashboard">Tableau de bord Admin</h1>
                 <p class="text-muted mb-0" data-i18n="manageClient">Gérer les réservations clients</p>
             </div>
             <div>
+                <button id="btn-change-profile" class="btn btn-outline-info fw-bold me-2" data-i18n="changeProfileBtn">Changer de profil</button>
                 <button id="btn-block-time" class="btn btn-outline-secondary fw-bold me-2" data-i18n="blockTimeBtn">Bloquer un créneau</button>
                 <button id="btn-logout" class="btn btn-outline-danger fw-bold" data-i18n="logoutBtn">Déconnexion</button>
             </div>
@@ -385,6 +423,7 @@
     <script src="frontend/scheduleComponent.js"></script>
     <script src="frontend/modalComponent.js"></script>
     <script src="frontend/i18n.js"></script>
+    <script src="frontend/profileSelector.js"></script>
     <script src="frontend/auth.js"></script>
     <script src="frontend/admin.js"></script>
     <script src="frontend/guest.js"></script>

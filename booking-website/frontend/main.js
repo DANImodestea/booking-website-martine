@@ -1,7 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
     window.fetchReservations = async function() {
         try {
-            const response = await fetch('/api/reservations');
+            const selectedProfile = window.getSelectedProfile();
+            // Build URL with adminProfile query parameter
+            const url = selectedProfile 
+                ? `/api/reservations?adminProfile=${encodeURIComponent(selectedProfile)}` 
+                : '/api/reservations';
+            
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`Server returned ${response.status} - Database connection likely blocked.`);
             }

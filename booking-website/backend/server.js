@@ -63,6 +63,7 @@ mongoose.connection.on('reconnectFailed', (err) => console.error('❌ [MONGODB] 
 
 // Define the Reservation Database Schema
 const reservationSchema = new mongoose.Schema({
+    adminProfile: { type: String, required: true, enum: ['Martine', 'Dani'] }, // 👈 NEW: Track which admin
     fname: { type: String, required: true },
     lname: { type: String, required: true },
     email: { type: String, default: '' },
@@ -138,11 +139,20 @@ app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     console.log(`\n🔐 [API] Login attempt for username: "${username}"`);
     
+    // Check Martine
     if (username === 'Martine' && password === 'Mimi33') {
-        console.log(`✅ [API] Login successful for Admin`);
-        const token = jwt.sign({ role: 'admin' }, SECRET_KEY, { expiresIn: '24h' });
-        res.json({ token });
-    } else {
+        console.log(`✅ [API] Login successful for Martine`);
+        const token = jwt.sign({ role: 'admin', adminProfile: 'Martine' }, SECRET_KEY, { expiresIn: '24h' });
+        res.json({ token, adminProfile: 'Martine' });
+    }
+    // Check Dani
+    else if (username === 'Dani' && password === 'Dandan33') {
+        console.log(`✅ [API] Login successful for Dani`);
+        const token = jwt.sign({ role: 'admin', adminProfile: 'Dani' }, SECRET_KEY, { expiresIn: '24h' });
+        res.json({ token, adminProfile: 'Dani' });
+    }
+    // Invalid credentials
+    else {
         console.log(`❌ [API] Login failed (Invalid credentials for username: "${username}")`);
         res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -151,16 +161,21 @@ app.post('/api/login', (req, res) => {
 // 1. GET all reservations
 app.get('/api/reservations', async (req, res) => {
     try {
+        const { adminProfile } = req.query; // Get admin profile from query params
         console.log('\n📊 [API] GET /api/reservations request received');
+        console.log('👤 [API] Admin Profile:', adminProfile);
         console.log('🔗 [API] MongoDB connection state:', mongoose.connection.readyState, '(0=disconnected, 1=connected, 2=connecting, 3=disconnecting)');
         
         if (mongoose.connection.readyState !== 1) {
             console.warn('⚠️  [API] WARNING: Not connected to MongoDB!');
         }
         
+        // Build filter based on adminProfile
+        const filter = adminProfile ? { adminProfile } : {};
+        
         console.log('⏳ [API] Querying Reservation.find()...');
-        const reservations = await Reservation.find().sort({ createdAt: 1 });
-        console.log('✅ [API] Successfully fetched', reservations.length, 'reservations');
+        const reservations = await Reservation.find(filter).sort({ createdAt: 1 });
+        console.log('✅ [API] Successfully fetched', reservations.length, 'reservations for profile:', adminProfile || 'all');
         res.json(reservations);
     } catch (error) {
         console.error('\n❌ [API] Failed to fetch reservations from MongoDB');
@@ -183,8 +198,13 @@ app.post('/api/reservations', async (req, res) => {
         console.log('🔗 [API] MongoDB connection state:', mongoose.connection.readyState);
         console.log('📦 [API] Request body:', JSON.stringify(req.body).substring(0, 100), '...');
         
+        // Ensure adminProfile is included
+        if (!req.body.adminProfile) {
+            return res.status(400).json({ message: "adminProfile is required" });
+        }
+        
         const newReservation = new Reservation(req.body);
-        console.log('⏳ [API] Saving reservation to MongoDB...');
+        console.log('⏳ [API] Saving reservation to MongoDB for profile:', req.body.adminProfile);
         const savedReservation = await newReservation.save();
         console.log('✅ [API] Successfully saved reservation with ID:', savedReservation._id);
         res.status(201).json(savedReservation);
@@ -265,7 +285,8 @@ const verifyAdmin = (req, res, next) => {
             console.log('❌ [MIDDLEWARE] User is not admin, role:', decoded.role);
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        console.log('✅ [MIDDLEWARE] Token verified successfully');
+        console.log('✅ [MIDDLEWARE] Token verified successfully for admin:', decoded.adminProfile);
+        req.adminProfile = decoded.adminProfile; // 👈 NEW: Store admin profile in request
         next();
     });
 };
@@ -336,8 +357,14 @@ app.get('/api/health', (req, res) => {
 // Stats/Summary Endpoint
 app.get('/api/stats', async (req, res) => {
     try {
+        const { adminProfile } = req.query; // Get admin profile from query params
         console.log('\n📈 [API] GET /api/stats request received');
-        const reservations = await Reservation.find();
+        console.log('👤 [API] Admin Profile:', adminProfile);
+        
+        // Build filter based on adminProfile
+        const filter = adminProfile ? { adminProfile } : {};
+        
+        const reservations = await Reservation.find(filter);
         
         const stats = {
             total: reservations.length,
@@ -350,7 +377,7 @@ app.get('/api/stats', async (req, res) => {
             weekly: reservations.filter(r => r.recurring === 'weekly').length
         };
         
-        console.log('✅ [API] Stats calculated:', JSON.stringify(stats));
+        console.log('✅ [API] Stats calculated for profile', adminProfile || 'all', ':', JSON.stringify(stats));
         res.json(stats);
     } catch (error) {
         console.error('❌ [API] Error calculating stats:', error.message);
@@ -361,8 +388,14 @@ app.get('/api/stats', async (req, res) => {
 // Bulk Fetch by Query - Advanced filtering
 app.get('/api/reservations-by-email/:email', async (req, res) => {
     try {
+        const { adminProfile } = req.query;
         console.log('\n🔍 [API] GET /api/reservations-by-email/:email request for:', req.params.email);
-        const reservations = await Reservation.find({ email: req.params.email }).sort({ createdAt: -1 });
+        console.log('👤 [API] Admin Profile:', adminProfile);
+        
+        const filter = { email: req.params.email };
+        if (adminProfile) filter.adminProfile = adminProfile;
+        
+        const reservations = await Reservation.find(filter).sort({ createdAt: -1 });
         console.log('✅ [API] Found', reservations.length, 'reservations for email');
         res.json(reservations);
     } catch (error) {
@@ -373,8 +406,14 @@ app.get('/api/reservations-by-email/:email', async (req, res) => {
 
 app.get('/api/reservations-by-phone/:phone', async (req, res) => {
     try {
+        const { adminProfile } = req.query;
         console.log('\n🔍 [API] GET /api/reservations-by-phone/:phone request for:', req.params.phone);
-        const reservations = await Reservation.find({ phone: req.params.phone }).sort({ createdAt: -1 });
+        console.log('👤 [API] Admin Profile:', adminProfile);
+        
+        const filter = { phone: req.params.phone };
+        if (adminProfile) filter.adminProfile = adminProfile;
+        
+        const reservations = await Reservation.find(filter).sort({ createdAt: -1 });
         console.log('✅ [API] Found', reservations.length, 'reservations for phone');
         res.json(reservations);
     } catch (error) {
@@ -386,13 +425,18 @@ app.get('/api/reservations-by-phone/:phone', async (req, res) => {
 // Get single reservation by ID
 app.get('/api/reservations/:id', async (req, res) => {
     try {
+        const { adminProfile } = req.query;
         console.log('\n📄 [API] GET /api/reservations/:id request for ID:', req.params.id);
+        console.log('👤 [API] Admin Profile:', adminProfile);
         
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: "Invalid reservation ID format" });
         }
         
-        const reservation = await Reservation.findById(req.params.id);
+        const filter = { _id: req.params.id };
+        if (adminProfile) filter.adminProfile = adminProfile;
+        
+        const reservation = await Reservation.findOne(filter);
         if (!reservation) {
             console.warn('⚠️  [API] Reservation not found for ID:', req.params.id);
             return res.status(404).json({ message: "Reservation not found" });

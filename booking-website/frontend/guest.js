@@ -76,7 +76,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedSlots = [];
 
     window.modalController = initModal(async (clientData, slotsToBook) => {
-        const newRes = { ...clientData, status: 'pending', slots: slotsToBook.map(slot => ({ day: slot.dataset.day, time: slot.dataset.time, fullDate: slot.dataset.fullDate })) };
+        const selectedProfile = window.getSelectedProfile();
+        const newRes = { 
+            ...clientData, 
+            adminProfile: selectedProfile, // 👈 NEW: Add selected admin profile
+            status: 'pending', 
+            slots: slotsToBook.map(slot => ({ day: slot.dataset.day, time: slot.dataset.time, fullDate: slot.dataset.fullDate })) 
+        };
         try {
             await fetch('/api/reservations', {
                 method: 'POST',
