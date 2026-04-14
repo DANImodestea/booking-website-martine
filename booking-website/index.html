@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Class</title>
+    <!-- Add Bootstrap 5 for clean responsive layouts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="frontend/styles.css">
+</head>
+<body class="bg-light">
+    <!-- Role Selection Modal -->
+    <div id="role-modal" class="custom-modal" style="display: flex;">
+        <div class="modal-content shadow text-center position-relative">
+            <!-- Language Selector -->
+            <div class="lang-selector position-absolute top-0 end-0 m-3 text-start">
+                <button id="lang-btn" class="btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
+                <div id="lang-menu" class="lang-menu shadow-sm border rounded bg-white mt-1">
+                    <div class="lang-option p-2 border-bottom" data-lang="fr">🇫🇷 Français</div>
+                    <div class="lang-option p-2" data-lang="en">🇬🇧 English</div>
+                </div>
+            </div>
+            
+            <h2 class="fw-bold mt-2" id="role-title" data-i18n="roleTitle">Bienvenue</h2>
+            <p class="text-muted" id="role-subtitle" data-i18n="roleSubtitle">Veuillez sélectionner votre rôle pour continuer :</p>
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <button id="btn-guest" class="btn btn-success px-4 py-2" data-i18n="btnGuest">Réservation Invité</button>
+                <button id="btn-admin" class="btn btn-secondary px-4 py-2" data-i18n="btnAdmin">Administrateur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guest Login Modal -->
+    <div id="guest-login-modal" class="custom-modal">
+        <div class="modal-content shadow text-center">
+            <span class="close-btn" id="close-guest-login">&times;</span>
+            <h2 class="fw-bold mb-4" data-i18n="guestLoginTitle">Connexion Invité</h2>
+            <div class="mb-4 text-start">
+                <label class="form-label fw-bold" data-i18n="guestIdLabel">Email ou Numéro de téléphone</label>
+                <input type="text" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email ou téléphone...">
+            </div>
+            <button id="btn-guest-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="continueBtn">Continuer</button>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="login-modal" class="custom-modal">
+        <div class="modal-content shadow">
+            <span class="close-btn" id="close-login">&times;</span>
+            <h2 class="fw-bold mb-4" data-i18n="adminLoginTitle">Connexion Admin</h2>
+            <div class="mb-3">
+                <label class="form-label fw-bold" data-i18n="adminUserLabel">Nom d'utilisateur</label>
+                <input type="text" id="admin-user" class="form-control" data-i18n-placeholder="adminUserPlaceholder" placeholder="Entrez le nom d'utilisateur">
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold" data-i18n="adminPassLabel">Mot de passe</label>
+                <input type="password" id="admin-pass" class="form-control" data-i18n-placeholder="adminPassPlaceholder" placeholder="Entrez le mot de passe">
+            </div>
+            <button id="btn-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="loginBtn">Se connecter</button>
+        </div>
+    </div>
+
+    <!-- Guest Booking Interface -->
+    <div id="guest-view" class="container-fluid py-4" style="display: none;">
+        <!-- Guest Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-5 rounded px-3 border">
+            <div class="container-fluid">
+                <span class="navbar-brand fw-bold text-success mb-0 h2">Martine Juillan</span>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#guestNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="guestNavbar">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-stretch gap-3 ms-lg-4">
+                        <li class="nav-item flex-fill">
+                            <a href="https://www.linkedin.com/in/martine-juillan/" target="_blank" class="btn btn-light border text-center text-lg-start w-100 h-100 px-3 py-2 d-flex flex-column justify-content-center shadow-sm text-decoration-none">
+                                <span class="fw-bold text-primary"><span style="font-size:1.1rem">💼</span> <span data-i18n="navLinkedIn">LinkedIn</span></span>
+                                <small class="text-muted" style="font-size: 0.8rem;" data-i18n="navLinkedInDesc">Voir mon profil</small>
+                            </a>
+                        </li>
+                        <li class="nav-item flex-fill">
+                            <a href="mailto:mjuillan38@gmail.com" class="btn btn-light border text-center text-lg-start w-100 h-100 px-3 py-2 d-flex flex-column justify-content-center shadow-sm text-decoration-none">
+                                <span class="fw-bold text-danger"><span style="font-size:1.1rem">📧</span> <span data-i18n="navEmail">Me contacter par Email</span></span>
+                                <small class="text-muted" style="font-size: 0.8rem;">mjuillan38@gmail.com</small>
+                            </a>
+                        </li>
+                        <li class="nav-item flex-fill">
+                            <div class="bg-light border rounded text-center text-lg-start w-100 h-100 px-3 py-2 d-flex flex-column justify-content-center shadow-sm">
+                                <span class="fw-bold text-dark"><span style="font-size:1.1rem">📞</span> <span data-i18n="navPhone">Téléphone :</span> 06 76 10 02 23</span>
+                                <small class="text-muted" style="font-size: 0.8rem;" data-i18n="navAvailability">Disponible pour échanger tous les jours de 9h à 13h</small>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="d-flex justify-content-center mt-3 mt-lg-0">
+                        <button id="btn-guest-logout" class="btn btn-outline-danger fw-bold" data-i18n="logoutBtn">Déconnexion</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <header class="text-center mb-5">
+            <h1 class="display-5 fw-bold text-success" data-i18n="scheduleTitle">Planifier un cours</h1>
+            <p class="lead text-muted" data-i18n="scheduleSubtitle">Sélectionnez les créneaux verts disponibles pour demander une réservation.</p>
+        </header>
+
+        <main class="d-flex flex-column flex-xl-row w-100 align-items-start" style="gap: 1.5rem;">
+            <!-- Left: Sidebar Actions & Reservations -->
+            <div id="guest-left-panel" style="flex: 0 0 35%; min-width: 300px; position: sticky; top: 20px;">
+                <div class="card shadow-sm border-0 p-4 mb-4 text-center bg-white">
+                    <h4 class="fw-bold mb-3" data-i18n="readyToBook">Prêt à réserver ?</h4>
+                    <p class="text-muted small mb-3" data-i18n="selectSlotsText">Sélectionnez un ou plusieurs créneaux verts sur le calendrier, puis cliquez sur le bouton ci-dessous.</p>
+                    <button class="btn btn-secondary btn-lg w-100 fw-bold shadow-sm book-action-btn" disabled data-i18n="bookBtnDefault">Sélectionnez un créneau</button>
+                </div>
+
+                <div id="guest-dashboard" style="display:none;">
+                    <h4 class="fw-bold text-success border-bottom pb-2 mb-3 d-flex align-items-center gap-2">
+                        <span data-i18n="myRes">Mes Réservations</span>
+                        <span id="guest-res-count" class="badge bg-success rounded-pill" style="font-size: 0.9rem;">0</span>
+                    </h4>
+                    <div id="guest-reservations-list" class="row g-3 pe-1" style="max-height: calc(100vh - 320px); overflow-y: auto; overflow-x: hidden;"></div>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div id="guest-resizer" class="d-none d-xl-flex align-items-center justify-content-center" style="align-self: stretch;">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <!-- Right: Schedule Map -->
+            <div id="guest-right-panel" class="flex-grow-1" style="min-width: 400px; width: 0;">
+                <div class="week-nav d-flex justify-content-between align-items-center mb-4">
+                    <button id="prev-week-btn" class="btn btn-outline-success fw-bold" data-i18n="prevWeek">&lt; Précédent</button>
+                    <h3 id="week-display" class="mb-0 fw-bold"></h3>
+                    <button id="next-week-btn" class="btn btn-outline-success fw-bold" data-i18n="nextWeek">Suivant &gt;</button>
+                </div>
+                <div class="card shadow-sm border-0 p-3 mb-4 h-100">
+                    <div id="schedule-grid" class="schedule-grid"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Action Button for Mobile -->
+        <div class="position-fixed bottom-0 end-0 p-3 d-xl-none" style="z-index: 1050; pointer-events: none;">
+            <button class="btn btn-secondary btn-lg shadow-lg rounded-pill book-action-btn px-4" disabled style="pointer-events: auto;" data-i18n="bookBtnDefault">Sélectionnez un créneau</button>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Interface -->
+    <div id="admin-view" class="container-fluid py-4" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border">
+            <div>
+                <h1 class="h3 mb-0 fw-bold text-success" data-i18n="adminDashboard">Tableau de bord Admin</h1>
+                <p class="text-muted mb-0" data-i18n="manageClient">Gérer les réservations clients</p>
+            </div>
+            <div>
+                <button id="btn-block-time" class="btn btn-outline-secondary fw-bold me-2" data-i18n="blockTimeBtn">Bloquer un créneau</button>
+                <button id="btn-logout" class="btn btn-outline-danger fw-bold" data-i18n="logoutBtn">Déconnexion</button>
+            </div>
+        </div>
+        
+        <div class="d-flex flex-column flex-xl-row w-100" style="gap: 1.5rem;">
+            <!-- Left panel: Dashboard Requests -->
+            <div id="admin-left-panel" class="admin-left-wrap" style="flex: 0 0 45%; min-width: 300px;">
+                <div class="bg-white p-3 rounded shadow-sm border h-100">
+                    <h4 class="mb-3 fw-bold border-bottom pb-2" data-i18n="pendingActive">Flux en attente & actifs</h4>
+                    
+                    <div class="mb-3">
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check feed-type-toggle" name="feed-type" id="feed-temp" value="one-time" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="feed-temp" data-i18n="tempOneTime">Temporaire (Une fois)</label>
+                            <input type="radio" class="btn-check feed-type-toggle" name="feed-type" id="feed-perm" value="weekly" autocomplete="off">
+                            <label class="btn btn-outline-success" for="feed-perm" data-i18n="permWeekly">Permanent (Hebdomadaire)</label>
+                        </div>
+                        <div class="p-3 bg-light rounded border d-flex flex-wrap gap-3 align-items-center">
+                            <input type="text" id="admin-search" class="form-control form-control-sm shadow-sm border-success" data-i18n-placeholder="searchPlaceholder" placeholder="Rechercher nom, email..." style="max-width: 250px;">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="admin-current-week-filter" checked>
+                                <label class="form-check-label small" for="admin-current-week-filter" data-i18n="showCurrent">Afficher uniquement la semaine en cours</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Feed Selector (Visible only when container is narrow) -->
+                    <div class="admin-feeds-mobile-nav mb-3">
+                        <select id="admin-feed-selector" class="form-select border-success shadow-sm fw-bold">
+                            <option value="col-all" data-i18n="viewAll">Voir toutes les demandes</option>
+                            <option value="col-pending" data-i18n="viewPending">Voir les demandes en attente</option>
+                            <option value="col-accepted" data-i18n="viewAccepted">Voir les demandes acceptées</option>
+                            <option value="col-rejected" data-i18n="viewRejected">Voir les demandes rejetées</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex flex-wrap mt-3 admin-feeds-container">
+                        <div id="wrap-col-all" class="admin-feed-col active-feed border-end pe-2">
+                            <h5 class="fw-bold text-info text-center border-bottom pb-2" data-i18n="allReq">Toutes les demandes</h5>
+                            <div id="col-all" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                        <div id="wrap-col-pending" class="admin-feed-col border-end pe-2">
+                            <h5 class="fw-bold text-warning text-center border-bottom pb-2" data-i18n="pending">En attente</h5>
+                            <div id="col-pending" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                        <div id="wrap-col-accepted" class="admin-feed-col border-end px-2">
+                            <h5 class="fw-bold text-success text-center border-bottom pb-2" data-i18n="accepted">Acceptées</h5>
+                            <div id="col-accepted" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                        <div id="wrap-col-rejected" class="admin-feed-col ps-2">
+                            <h5 class="fw-bold text-danger text-center border-bottom pb-2" data-i18n="rejected">Rejetées</h5>
+                            <div id="col-rejected" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div id="admin-resizer" class="d-none d-xl-flex align-items-center justify-content-center">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <!-- Right panel: Schedule Map -->
+            <div id="admin-right-panel" class="flex-grow-1" style="min-width: 400px; width: 0;">
+                <div class="bg-white p-3 rounded shadow-sm border h-100">
+                    <h4 class="mb-4 fw-bold border-bottom pb-2" data-i18n="availMap">Carte des disponibilités</h4>
+                    <div class="week-nav d-flex justify-content-between align-items-center mb-3">
+                        <button id="admin-prev-week-btn" class="btn btn-outline-success btn-sm fw-bold" data-i18n="prevWeekAdmin">&lt; Semaine Précédente</button>
+                        <h5 id="admin-week-display" class="mb-0 fw-bold"></h5>
+                        <button id="admin-next-week-btn" class="btn btn-outline-success btn-sm fw-bold" data-i18n="nextWeekAdmin">Semaine Suivante &gt;</button>
+                    </div>
+                    <div id="admin-schedule-grid" class="schedule-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-modal" class="custom-modal">
+        <div class="modal-content shadow">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h3 class="fw-bold mb-3" data-i18n="resReq">Demande de réservation</h3>
+            <div id="selected-time-display" class="alert alert-success py-2 mb-4"></div>
+            
+            <form id="booking-form">
+                <div class="mb-3">
+                    <label class="form-label fw-bold" data-i18n="resType">Type de réservation</label>
+                    <div style="display: flex; gap: 15px;">
+                        <label style="font-weight: normal;"><input type="radio" name="recurring" value="one-time" checked> <span data-i18n="oneTime">Une fois</span></label>
+                        <label style="font-weight: normal;"><input type="radio" name="recurring" value="weekly"> <span data-i18n="weekly">Hebdomadaire</span></label>
+                    </div>
+                </div>
+                <div id="weeks-group" class="mb-3" style="display: none;">
+                    <label for="num-weeks" class="form-label fw-bold" data-i18n="howManyWeeks">Pour combien de semaines ? *</label>
+                    <select id="num-weeks" class="form-select">
+                        <option value="1" data-i18n="w1">1 Semaine</option>
+                        <option value="4" selected data-i18n="w4">4 Semaines (1 Mois)</option>
+                        <option value="8" data-i18n="w8">8 Semaines (2 Mois)</option>
+                        <option value="12" data-i18n="w12">12 Semaines (3 Mois)</option>
+                        <option value="24" data-i18n="w24">24 Semaines (6 Mois)</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label for="fname" class="form-label fw-bold" data-i18n="fname">Prénom *</label>
+                        <input type="text" id="fname" class="form-control" required>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label for="lname" class="form-label fw-bold" data-i18n="lname">Nom *</label>
+                        <input type="text" id="lname" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold" data-i18n="email">Email *</label>
+                    <input type="email" id="email" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label fw-bold" data-i18n="phone">Numéro de téléphone *</label>
+                    <input type="tel" id="phone" class="form-control" required>
+                </div>
+                <div class="mb-4">
+                    <label for="message" class="form-label fw-bold" data-i18n="msgOpt">Message (Optionnel)</label>
+                    <textarea id="message" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success w-100 fw-bold py-2" data-i18n="confirmReq">Confirmer la demande</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Reservation Modal -->
+    <div id="edit-modal" class="custom-modal" style="z-index: 1000;">
+        <div class="modal-content shadow text-start" style="max-width: 450px;">
+            <span class="close-btn" id="close-edit-modal">&times;</span>
+            <h3 class="fw-bold mb-3" data-i18n="editDetails">Modifier les détails</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-index">
+                <label class="small fw-bold mb-1" data-i18n="clientInfo">Infos Client</label>
+                <div class="d-flex gap-2 mb-2">
+                    <input type="text" id="edit-fname" class="form-control form-control-sm" data-i18n-placeholder="fnamePlaceholder" placeholder="Prénom" required>
+                    <input type="text" id="edit-lname" class="form-control form-control-sm" data-i18n-placeholder="lnamePlaceholder" placeholder="Nom" required>
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <input type="email" id="edit-email" class="form-control form-control-sm" data-i18n-placeholder="emailPlaceholder" placeholder="Email" required>
+                    <input type="tel" id="edit-phone" class="form-control form-control-sm" data-i18n-placeholder="phonePlaceholder" placeholder="Téléphone" required>
+                </div>
+                <label class="small fw-bold mb-1" data-i18n="resType">Type de réservation</label>
+                <select id="edit-recurring" class="form-select form-select-sm mb-2">
+                    <option value="one-time" data-i18n="oneTime">Une fois</option>
+                    <option value="weekly" data-i18n="weekly">Hebdomadaire</option>
+                </select>
+                <div id="edit-enddate-group" style="display: none;" class="mb-3">
+                    <select id="edit-weeks" class="form-select form-select-sm mb-1">
+                        <option value="" data-i18n="extendWeeks">Prolonger de...</option>
+                        <option value="4" data-i18n="w4">4 Semaines (1 Mois)</option>
+                        <option value="8" data-i18n="w8">8 Semaines (2 Mois)</option>
+                        <option value="12" data-i18n="w12">12 Semaines (3 Mois)</option>
+                        <option value="24" data-i18n="w24">24 Semaines (6 Mois)</option>
+                    </select>
+                    <label class="small text-muted mb-0" data-i18n="untilDate">Jusqu'à la date :</label>
+                    <input type="date" id="edit-enddate" class="form-control form-control-sm">
+                </div>
+                <label class="small fw-bold mb-1" data-i18n="message">Message</label>
+                <textarea id="edit-message" class="form-control form-control-sm mb-2" rows="2" data-i18n-placeholder="message" placeholder="Message"></textarea>
+                <div id="edit-admin-note-group" class="mb-3">
+                    <label class="small fw-bold mb-1 text-warning" data-i18n="adminNote">Note Admin (Privée)</label>
+                    <textarea id="edit-adminnote" class="form-control form-control-sm border-warning" rows="2" data-i18n-placeholder="adminNote" placeholder="Note Admin (Privée)"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2" data-i18n="saveChanges">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Block Time Modal -->
+    <div id="block-modal" class="custom-modal" style="z-index: 1000;">
+        <div class="modal-content shadow text-start" style="max-width: 450px;">
+            <span class="close-btn" id="close-block-modal">&times;</span>
+            <h3 class="fw-bold mb-3" id="block-modal-title" data-i18n="blockTimeVacation">Bloquer un créneau / Vacances</h3>
+            <form id="block-form">
+                <input type="hidden" id="block-index">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="startDate">Date de début</label>
+                        <input type="date" id="block-start" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="startTime">Heure de début (Opt)</label>
+                        <input type="time" id="block-start-time" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="endDate">Date de fin</label>
+                        <input type="date" id="block-end" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="endTime">Heure de fin (Opt)</label>
+                        <input type="time" id="block-end-time" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold mb-1" data-i18n="reasonOpt">Raison (Optionnelle)</label>
+                    <input type="text" id="block-reason" class="form-control form-control-sm" data-i18n-placeholder="reasonPlaceholder" placeholder="ex: Vacances, Maintenance">
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary w-100 fw-bold py-2" id="block-submit-btn" data-i18n="blockDates">Bloquer les dates</button>
+                    <button type="button" class="btn btn-danger w-100 fw-bold py-2 d-none" id="block-delete-btn" data-i18n="eraseBlock">Effacer le blocage</button>
+                </div>
+                <div id="existing-blocks-section" class="mt-4 border-top pt-3" style="display: none;">
+                    <label class="form-label fw-bold mb-1" data-i18n="orModify">Ou modifier un blocage existant</label>
+                    <select id="existing-blocks-select" class="form-select form-select-sm">
+                        <option value="" data-i18n="selectBlock">Sélectionnez un blocage à modifier...</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generic Custom Dialog Modal -->
+    <div id="custom-dialog-modal" class="custom-modal" style="z-index: 9999;">
+        <div class="modal-content shadow text-center" style="max-width: 400px; padding: 25px;">
+            <h4 id="dialog-title" class="fw-bold mb-3 text-dark"></h4>
+            <p id="dialog-message" class="text-muted mb-4"></p>
+            <div id="dialog-buttons" class="d-flex justify-content-center flex-column gap-2">
+                <!-- Buttons will be injected here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle for mobile navbar toggles -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="frontend/scheduleComponent.js"></script>
+    <script src="frontend/modalComponent.js"></script>
+    <script src="frontend/i18n.js"></script>
+    <script src="frontend/auth.js"></script>
+    <script src="frontend/admin.js"></script>
+    <script src="frontend/guest.js"></script>
+    <script src="frontend/main.js"></script>
+</body>
+</html>

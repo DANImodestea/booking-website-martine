@@ -1,0 +1,302 @@
+/* --- VARIABLES CSS --- */
+:root {
+    --bg-main: #f4f7f6;
+    --text-main: #333;
+    --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    
+    --color-primary: #2e7d32;
+    --color-primary-hover: #1b5e20;
+    
+    --slot-free-bg: #e8f5e9;
+    --slot-free-text: #2e7d32;
+    --slot-free-border: #a5d6a7;
+    
+    --slot-processing-bg: #fff3e0;
+    --slot-processing-text: #e65100;
+    --slot-processing-border: #ffcc80;
+    
+    --radius: 8px;
+    --shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+* {
+    box-sizing: border-box;
+    font-family: var(--font-main);
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 80px repeat(7, minmax(100px, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.grid-header {
+    font-weight: bold;
+    text-align: center;
+    padding: 10px 5px;
+    background-color: var(--color-primary);
+    color: white;
+    border-radius: var(--radius);
+}
+
+.time-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.85em;
+    color: var(--text-main);
+}
+
+.time-slot {
+    padding: 15px 5px;
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85em;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+}
+
+.time-slot:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+}
+
+/* Slot States using Variables */
+.free {
+    background-color: var(--slot-free-bg);
+    color: var(--slot-free-text);
+    border-color: var(--slot-free-border);
+}
+
+.selected {
+    background-color: #bbdefb;
+    color: #1565c0;
+    border-color: #90caf9;
+}
+
+.processing {
+    background-color: var(--slot-processing-bg);
+    color: var(--slot-processing-text);
+    border-color: var(--slot-processing-border);
+    cursor: not-allowed;
+}
+
+.taken {
+    background-color: #4caf50;
+    color: white;
+    border-color: #388e3c;
+    cursor: not-allowed;
+}
+
+/* Blocked / Vacation Slot Styling */
+.blocked {
+    background-color: #e0e0e0;
+    color: #616161;
+    border-color: #9e9e9e;
+    cursor: not-allowed;
+}
+
+/* Own Reservation Styling */
+.own-slot {
+    box-shadow: 0 0 0 3px rgba(255, 235, 59, 1) inset !important;
+    border-color: #fbc02d !important;
+}
+
+.cancel-own-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    background-color: #fff;
+    color: #d32f2f;
+    border: 1px solid #d32f2f;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.cancel-own-btn:hover {
+    background-color: #d32f2f;
+    color: #fff;
+}
+
+/* Active Highlight Styles for Map & Dashboard */
+.highlight-slot {
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.8), 0 4px 12px rgba(255, 193, 7, 0.6) !important;
+    transform: scale(1.05) !important;
+    z-index: 2;
+    border-color: #ffc107 !important;
+}
+
+.highlight-card {
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.8), 0 4px 12px rgba(255, 193, 7, 0.6) !important;
+    transform: scale(1.02);
+    border-color: #ffc107 !important;
+    transition: all 0.2s ease-in-out;
+    z-index: 2;
+}
+
+/* Dashboard Cards Hover Transition */
+.admin-res-card, .guest-res-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.admin-res-card:not(.highlight-card):hover, .guest-res-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+}
+
+.admin-res-card.highlight-card:hover {
+    transform: scale(1.02) translateY(-2px);
+}
+
+/* Modal Styling */
+.custom-modal {
+    display: none; 
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #555;
+}
+
+/* Resizer & Admin Layout Styles */
+#admin-resizer, #guest-resizer {
+    width: 16px;
+    cursor: col-resize;
+    background-color: transparent;
+    user-select: none;
+    touch-action: none;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+}
+
+#admin-resizer:hover, #admin-resizer.is-resizing,
+#guest-resizer:hover, #guest-resizer.is-resizing {
+    background-color: #e0e0e0;
+}
+
+.resizer-handle {
+    width: 4px;
+    height: 60px;
+    background-color: #9e9e9e;
+    border-radius: 2px;
+}
+
+.admin-left-wrap {
+    container-type: inline-size;
+}
+
+.admin-feed-col {
+    width: 33.333%;
+}
+
+#wrap-col-all {
+    display: none;
+}
+
+.admin-feeds-mobile-nav {
+    display: none;
+}
+
+/* Use Container Queries so feeds stack specifically when their parent gets too narrow during resizing */
+@container (max-width: 800px) {
+    .admin-feeds-mobile-nav {
+        display: block;
+    }
+    .admin-feed-col {
+        width: 100%;
+        border-right: none !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-bottom: 0px;
+        display: none;
+    }
+    .admin-feed-col.active-feed {
+        display: block;
+        }
+        #wrap-col-all.active-feed {
+            display: block;
+    }
+}
+
+/* Language Selector Styles */
+.lang-selector {
+    z-index: 100;
+}
+
+.lang-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    min-width: 120px;
+}
+
+.lang-option {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.lang-option:hover {
+    background-color: #f8f9fa;
+}
+
+/* Animation for Schedule Grid Week Change */
+@keyframes flashWeekChange {
+    0% { opacity: 0.4; filter: brightness(1.2); }
+    100% { opacity: 1; filter: brightness(1); }
+}
+
+.flash-animation {
+    animation: flashWeekChange 0.4s ease-out;
+}
