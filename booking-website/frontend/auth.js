@@ -77,11 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('guest-id-input').value = '';
     });
 
-    document.getElementById('btn-admin')?.addEventListener('click', () => {
-        roleModal.style.display = 'none';
-        loginModal.style.display = 'flex';
-    });
-
     document.getElementById('close-login')?.addEventListener('click', () => {
         loginModal.style.display = 'none';
         roleModal.style.display = 'flex';
