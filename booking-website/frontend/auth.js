@@ -5,6 +5,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const adminView = document.getElementById('admin-view');
     const guestLoginModal = document.getElementById('guest-login-modal');
     
+    // Validation helper for French phone and email
+    function isValidFrenchPhoneOrEmail(input) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // French phone format: +33 or 0, followed by numbers (spaces/dashes optional)
+        const frenchPhoneRegex = /^((\+33|0)[1-9](?:[0-9]{8})|(\+33|0)[1-9](?:[0-9\s\-]{8,}))$/;
+        
+        // Remove spaces and dashes for validation
+        const cleanPhone = input.replace(/[\s\-]/g, '');
+        
+        return emailRegex.test(input) || frenchPhoneRegex.test(cleanPhone);
+    }
+    
+    // Admin button from profile selector
+    document.getElementById('btn-admin-from-profile')?.addEventListener('click', () => {
+        const profileModal = document.getElementById('profile-modal');
+        if (profileModal) {
+            profileModal.style.display = 'none';
+        }
+        loginModal.style.display = 'flex';
+    });
+    
     document.getElementById('btn-guest')?.addEventListener('click', () => {
         roleModal.style.display = 'none';
         guestLoginModal.style.display = 'flex';
@@ -13,6 +34,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('close-guest-login')?.addEventListener('click', () => {
         guestLoginModal.style.display = 'none';
         roleModal.style.display = 'flex';
+    });
+    
+    document.getElementById('btn-back-from-guest-login')?.addEventListener('click', () => {
+        guestLoginModal.style.display = 'none';
+        roleModal.style.display = 'flex';
+        document.getElementById('guest-id-input').value = '';
     });
 
     document.getElementById('btn-guest-login')?.addEventListener('click', () => {
@@ -25,6 +52,17 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             return;
         }
+        
+        // Validate French phone or email format
+        if (!isValidFrenchPhoneOrEmail(guestId)) {
+            window.showDialog({ 
+                title: 'Format invalide', 
+                message: 'Veuillez entrer un email valide ou un numéro de téléphone français (ex: 06 12 34 56 78 ou email@example.com)',
+                buttons: [{ text: 'OK', class: 'btn-warning w-100' }] 
+            });
+            return;
+        }
+        
         localStorage.setItem('currentUser', guestId);
         guestLoginModal.style.display = 'none';
         guestView.style.display = 'block';
@@ -47,6 +85,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('close-login')?.addEventListener('click', () => {
         loginModal.style.display = 'none';
         roleModal.style.display = 'flex';
+        document.getElementById('admin-user').value = '';
+        document.getElementById('admin-pass').value = '';
+    });
+    
+    document.getElementById('btn-back-from-admin-login')?.addEventListener('click', () => {
+        loginModal.style.display = 'none';
+        roleModal.style.display = 'flex';
+        document.getElementById('admin-user').value = '';
+        document.getElementById('admin-pass').value = '';
     });
 
     document.getElementById('btn-login')?.addEventListener('click', async () => {
@@ -94,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('btn-change-profile')?.addEventListener('click', () => {
-        console.log('🔄 [AUTH] Changing admin profile...');
+        console.log('[SYNC] [AUTH] Changing admin profile...');
         adminView.style.display = 'none';
         roleModal.style.display = 'none';
         localStorage.removeItem('currentUser');

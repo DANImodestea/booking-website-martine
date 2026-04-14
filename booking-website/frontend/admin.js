@@ -1,4 +1,6 @@
 window.loadAdminDashboard = function() {
+    window.pendingSlotSelections = window.pendingSlotSelections || {};
+
     const colAll = document.getElementById('col-all');
     const colPending = document.getElementById('col-pending');
     const colAccepted = document.getElementById('col-accepted');
@@ -65,11 +67,33 @@ window.loadAdminDashboard = function() {
         const endT = res.endTime ? formatTimeStr(res.endTime) : '';
         const timeStr = (startT || endT) ? ` (${startT || 'Start'} - ${endT || 'End'})` : '';
         
-        const slotsHtml = res.slots && res.slots.length > 0 
-            ? res.slots.map(s => `<span class="badge bg-light text-dark border me-1">${s.day} @ ${s.time}</span>`).join(' ')
-            : (res.status === 'blocked' ? `<span class="badge bg-secondary mt-1">${window.t('blocked')}: ${res.startDate} ${window.t('to')} ${res.endDate}${timeStr}</span>` : window.t('none'));
-        const cardBg = res.status === 'blocked' ? 'bg-secondary-subtle' : res.status === 'approved' ? 'bg-success-subtle' : res.status === 'rejected' || res.status === 'cancelled' ? 'bg-danger-subtle' : 'bg-warning-subtle';
-        
+        const resKey = res._id || `local-${index}`;
+        const existingSelection = window.pendingSlotSelections[resKey];
+        if (!existingSelection && res.slots && res.slots.length > 0) {
+            window.pendingSlotSelections[resKey] = res.slots.map((_, i) => i);
+        }
+        const selection = window.pendingSlotSelections[resKey] || [];
+
+        let slotsHtml = '';
+        if (res.slots && res.slots.length > 0) {
+            slotsHtml = res.slots.map((s, i) => {
+                const isChecked = selection.includes(i);
+                const uncheckedClass = (!isChecked && res.status === 'pending') ? 'slot-unchecked' : '';
+                return `
+                    <label class="form-check d-inline-flex align-items-center gap-1 me-2 mb-1 slot-check-label ${uncheckedClass}">
+                        <input type="checkbox" class="form-check-input slot-checkbox" data-res-index="${index}" data-slot-index="${i}" ${isChecked ? 'checked' : ''}>
+                        <span class="badge bg-light text-dark border">${s.day} @ ${s.time}</span>
+                    </label>
+                `;
+            }).join('');
+        } else {
+            slotsHtml = res.status === 'blocked' ? `<span class="badge bg-secondary mt-1">${window.t('blocked')}: ${res.startDate} ${window.t('to')} ${res.endDate}${timeStr}</span>` : window.t('none');
+        }
+        const statusClass = res.status === 'blocked' ? 'status-blocked' 
+            : res.status === 'approved' ? 'status-approved' 
+            : (res.status === 'rejected' || res.status === 'cancelled') ? 'status-rejected' 
+            : 'status-pending';
+
         let actionBtns = `<div class="d-flex gap-1 mt-2">`;
         if (res.status === 'blocked') {
             actionBtns += `<button class="btn btn-sm btn-danger reject-btn flex-fill fw-bold px-1 py-0" style="font-size:0.85rem;" data-index="${index}">${window.t('unblock')}</button>`;
@@ -97,7 +121,7 @@ window.loadAdminDashboard = function() {
 
         const isHighlightedCard = (window.activeAdminResIndex === index) ? 'highlight-card' : '';
         const cardHtml = `
-        <div class="card mb-3 shadow-sm border-0 ${cardBg} admin-res-card ${isHighlightedCard}" data-res-index="${index}" style="cursor: pointer;">
+        <div class="card mb-3 shadow-sm border-0 admin-res-card ${statusClass} ${isHighlightedCard}" data-res-index="${index}" style="cursor: pointer;">
             <div class="card-body p-3">
                 <div class="d-flex justify-content-between align-items-start mb-1 border-bottom pb-1">
                     <h6 class="card-title mb-0 fw-bold">${res.fname} ${res.lname}</h6>
@@ -108,7 +132,7 @@ window.loadAdminDashboard = function() {
                     <div><strong>${window.t('type')}:</strong> <span class="badge bg-secondary">${res.recurring === 'weekly' ? window.t('weekly') : window.t('oneTime')}</span> ${res.endDate ? `(${window.t('until')}: ${res.endDate})` : ''}</div>
                 </div>
                 <div class="mb-2">
-                    <strong class="small d-block mb-1">${window.t('slots')}:</strong>
+                    <div class="mb-1"><strong class="small">${window.t('slots')}:</strong>${selectAllToggleHtml}</div>
                     ${slotsHtml}
                 </div>
                 ${res.message ? `<div class="small p-2 border rounded bg-white mb-2"><strong>${window.t('message')}:</strong> ${res.message}</div>` : ''}
@@ -138,6 +162,23 @@ window.loadAdminDashboard = function() {
             const reservations = JSON.parse(localStorage.getItem('reservations')) || [];
             const target = reservations[idx];
             if (target && target._id) {
+                // For approvals, allow partial slot acceptance based on persisted selection map
+                let updatedSlots = target.slots;
+                const resKey = target._id || `local-${idx}`;
+                
+                if (newStatus === 'approved' && Array.isArray(target.slots) && target.slots.length > 0) {
+                    const selection = window.pendingSlotSelections[resKey] || target.slots.map((_, i) => i);
+                    updatedSlots = target.slots.filter((slot, i) => selection.includes(i));
+                    
+                    if (updatedSlots.length === 0) {
+                        window.showDialog({
+                            title: window.t('error') || 'Erreur',
+                            message: window.t('selectAtLeastOne') || 'Veuillez sélectionner au moins un créneau à valider.',
+                            buttons: [{ text: 'OK', class: 'btn-secondary w-100' }]
+                        });
+                        return;
+                    }
+                }
                 try {
                     await fetch(`/api/reservations/${target._id}`, {
                         method: 'PUT',
@@ -145,16 +186,95 @@ window.loadAdminDashboard = function() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${localStorage.getItem('token')}`
                         },
-                        body: JSON.stringify({ status: newStatus })
+                        body: JSON.stringify({ status: newStatus, slots: updatedSlots })
                     });
+                    delete window.pendingSlotSelections[resKey];
                     await window.fetchReservations();
                 } catch(e) { console.error(e); }
             } else if (target) {
+                const resKey = target._id || `local-${idx}`;
+                
+                if (newStatus === 'approved' && Array.isArray(target.slots) && target.slots.length > 0) {
+                    const selection = window.pendingSlotSelections[resKey] || target.slots.map((_, i) => i);
+                    target.slots = target.slots.filter((slot, i) => selection.includes(i));
+                    
+                    if (target.slots.length === 0) {
+                        window.showDialog({
+                            title: window.t('error') || 'Erreur',
+                            message: window.t('selectAtLeastOne') || 'Veuillez sélectionner au moins un créneau à valider.',
+                            buttons: [{ text: 'OK', class: 'btn-secondary w-100' }]
+                        });
+                        return;
+                    }
+                }
                 target.status = newStatus;
+                delete window.pendingSlotSelections[resKey];
                 localStorage.setItem('reservations', JSON.stringify(reservations));
                 window.dispatchEvent(new Event('reservationsUpdated'));
             }
         }));
+    });
+
+    // Live toggle slots within a pending reservation (delegated so it survives re-renders)
+    document.addEventListener('change', async (e) => {
+        const cb = e.target;
+
+        // Handle "Select All" toggle
+        if (cb.classList.contains('select-all-slots-toggle')) {
+            e.stopPropagation();
+            const resIndex = parseInt(cb.dataset.resIndex, 10);
+            const isChecked = cb.checked;
+            
+            const card = cb.closest('.admin-res-card');
+            const slotCheckboxes = Array.from(card.querySelectorAll('.slot-checkbox'));
+            
+            slotCheckboxes.forEach(box => {
+                box.checked = isChecked;
+                const lbl = box.closest('.slot-check-label');
+                if (lbl) {
+                    if (isChecked) lbl.classList.remove('slot-unchecked');
+                    else lbl.classList.add('slot-unchecked');
+                }
+            });
+
+            const reservations = JSON.parse(localStorage.getItem('reservations')) || [];
+            const target = reservations[resIndex];
+            if (!target || !Array.isArray(target.slots)) return;
+            const resKey = target._id || `local-${resIndex}`;
+            window.pendingSlotSelections[resKey] = isChecked ? target.slots.map((_, i) => i) : [];
+            return;
+        }
+
+        if (!cb.classList.contains('slot-checkbox')) return;
+        e.stopPropagation();
+
+        const resIndex = parseInt(cb.dataset.resIndex, 10);
+        const reservations = JSON.parse(localStorage.getItem('reservations')) || [];
+        const target = reservations[resIndex];
+        if (!target || !Array.isArray(target.slots)) return;
+
+        const card = cb.closest('.admin-res-card');
+        const related = Array.from(card.querySelectorAll('.slot-checkbox'));
+        const keepIndexes = related.filter(box => box.checked).map(box => parseInt(box.dataset.slotIndex, 10));
+
+        const resKey = target._id || `local-${resIndex}`;
+        window.pendingSlotSelections[resKey] = keepIndexes;
+
+        // Visually mark unchecked labels (but keep them so user can re-check)
+        related.forEach((box) => {
+            const i = parseInt(box.dataset.slotIndex, 10);
+            const lbl = box.closest('.slot-check-label');
+            if (!lbl) return;
+            if (keepIndexes.includes(i)) lbl.classList.remove('slot-unchecked');
+            else lbl.classList.add('slot-unchecked');
+        });
+
+        // Update "Select All" toggle state if individual slots change
+        const selectAllToggle = card.querySelector('.select-all-slots-toggle');
+        if (selectAllToggle) {
+            const allChecked = related.every(box => box.checked);
+            selectAllToggle.checked = allChecked;
+        }
     });
 
     document.querySelectorAll('.admin-res-card').forEach(card => {
@@ -332,6 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const reservations = JSON.parse(localStorage.getItem('reservations')) || [];
             const idx = document.getElementById('block-index').value;
             const blockData = {
+                adminProfile: window.getSelectedProfile(),
                 fname: "Vacation", lname: "Block", email: "", phone: "", status: "blocked", recurring: "one-time",
                 startDate: document.getElementById('block-start').value,
                 startTime: document.getElementById('block-start-time').value,

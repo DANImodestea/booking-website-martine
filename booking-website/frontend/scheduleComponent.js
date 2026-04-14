@@ -92,208 +92,246 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
 
             // Add clickable slots for each day in this row
             days.forEach(dayDate => {
-                const slot = document.createElement('div');
+                const slotContainer = document.createElement('div');
+                slotContainer.classList.add('slot-cell');
+                const slotStack = document.createElement('div');
+                slotStack.classList.add('slot-stack');
+                slotContainer.appendChild(slotStack);
+
                 const slotDayStr = formatDateForHeader(dayDate);
 
                 // --- Check Database/Storage for status ---
                 let reservations = JSON.parse(localStorage.getItem('reservations')) || [];
                 if (!Array.isArray(reservations)) reservations = [];
-                let isPending = false;
-                let isApproved = false;
-                let isBlocked = false;
-                let clientInfo = '';
-                let isHighlighted = false;
-                let isOwner = false;
-                let ownerResIndex = -1;
-                let slotResIndex = null;
-                
+
                 const currentUser = localStorage.getItem('currentUser');
                 const isAdmin = currentUser === 'admin';
                 
                 const cellDate = new Date(dayDate);
                 cellDate.setHours(0,0,0,0);
 
-                reservations.forEach(res => {
+                const slotMatches = [];
+
+                const buildSlotDate = () => {
+                    const timeMatch = time.match(/(\d+):(\d+)\s(AM|PM)/);
+                    let hour24 = parseInt(timeMatch[1], 10);
+                    if (timeMatch[3] === 'PM' && hour24 < 12) hour24 += 12;
+                    if (timeMatch[3] === 'AM' && hour24 === 12) hour24 = 0;
+                    return { hour: hour24, minute: parseInt(timeMatch[2], 10) };
+                };
+                const { hour: slotHour, minute: slotMinute } = buildSlotDate();
+
+                reservations.forEach((res, resIdx) => {
                     if (res.status === 'cancelled' || res.status === 'rejected' || res.status === 'reject') return;
-                    
+
+                    const createdTs = res.createdAt ? new Date(res.createdAt).getTime() : resIdx;
+
+                    // Blocked ranges
                     if (res.status === 'blocked') {
                         const bStart = new Date(`${res.startDate}T${res.startTime || '00:00'}:00`);
                         const bEnd = new Date(`${res.endDate}T${res.endTime || '23:59'}:59`);
-                        
-                        const timeMatch = time.match(/(\d+):(\d+)\s(AM|PM)/);
-                        let hours = parseInt(timeMatch[1], 10);
-                        if (timeMatch[3] === 'PM' && hours < 12) hours += 12;
-                        if (timeMatch[3] === 'AM' && hours === 12) hours = 0;
-                        
                         const slotExactDate = new Date(cellDate);
-                        slotExactDate.setHours(hours, parseInt(timeMatch[2], 10), 0, 0);
+                        slotExactDate.setHours(slotHour, slotMinute, 0, 0);
 
                         if (slotExactDate.getTime() >= bStart.getTime() && slotExactDate.getTime() <= bEnd.getTime()) {
-                            isBlocked = true;
-                            if (isAdmin) {
-                                clientInfo = res.message ? `${window.t('blocked')}:\n${res.message}` : window.t('blocked');
-                                isOwner = true;
-                                ownerResIndex = reservations.indexOf(res);
-                                slotResIndex = ownerResIndex;
-                            } else {
-                                clientInfo = window.t('unavailable');
-                            }
+                            const displayText = isAdmin 
+                                ? (res.message ? `${window.t('blocked')}:\n${res.message}` : window.t('blocked'))
+                                : window.t('unavailable');
+                            const isHighlighted = isAdmin && window.activeAdminResIndex === resIdx;
+                            slotMatches.push({
+                                res,
+                                resIdx,
+                                status: 'blocked',
+                                cardState: 'blocked',
+                                text: displayText,
+                                isOwner: isAdmin,
+                                highlight: isHighlighted,
+                                createdTs
+                            });
                         }
+                        return;
                     }
-                    
+
                     if (!res.slots) return;
+
                     res.slots.forEach(s => {
-                        if (s.time === time) {
-                            let isMatch = false;
-                            if (s.fullDate) {
-                                const slotDate = new Date(s.fullDate);
-                                slotDate.setHours(0,0,0,0);
-                                
-                                if (res.recurring === 'weekly') {
-                                    const endDate = res.endDate ? new Date(res.endDate) : new Date(8640000000000000);
-                                    endDate.setHours(23,59,59,999);
-                                    if (cellDate.getTime() >= slotDate.getTime() && cellDate.getTime() <= endDate.getTime() && cellDate.getDay() === slotDate.getDay()) {
-                                        isMatch = true;
-                                    }
+                        if (s.time !== time) return;
+
+                        let isMatch = false;
+                        if (s.fullDate) {
+                            const slotDate = new Date(s.fullDate);
+                            slotDate.setHours(0,0,0,0);
+                            
+                            if (res.recurring === 'weekly') {
+                                const endDate = res.endDate ? new Date(res.endDate) : new Date(8640000000000000);
+                                endDate.setHours(23,59,59,999);
+                                if (cellDate.getTime() >= slotDate.getTime() && cellDate.getTime() <= endDate.getTime() && cellDate.getDay() === slotDate.getDay()) {
+                                    isMatch = true;
+                                }
+                            } else {
+                                if (cellDate.getTime() === slotDate.getTime()) isMatch = true;
+                            }
+                        } else if (s.day === slotDayStr) {
+                            isMatch = true; // Fallback
+                        }
+
+                        if (!isMatch) return;
+
+                        const isOwnerMatch = currentUser === res.email || currentUser === res.phone;
+                        const untilTxt = res.recurring === 'weekly' && res.endDate ? `(${window.t('until')} ${new Date(res.endDate).toLocaleDateString()})` : (res.recurring === 'weekly' ? `(${window.t('weekly')})` : '');
+                        const nameStr = (isAdmin || isOwnerMatch) ? `${res.fname}${untilTxt ? `\n${untilTxt}` : ''}` : '';
+                        const searchStr = `${res.fname} ${res.lname} ${res.email} ${res.phone} ${(res.slots || []).map(sl=>sl.day).join(' ')}`.toLowerCase();
+                        const searchHighlight = activeSearchTerm && searchStr.includes(activeSearchTerm);
+                        const highlight = (isAdmin && window.activeAdminResIndex === resIdx) || searchHighlight;
+
+                        const cardState = res.status === 'approved' ? 'taken' : res.status === 'pending' ? 'processing' : 'free';
+
+                        slotMatches.push({
+                            res,
+                            resIdx,
+                            status: res.status,
+                            cardState,
+                            text: nameStr,
+                            isOwner: isOwnerMatch,
+                            highlight,
+                            createdTs
+                        });
+                    });
+                });
+
+                // Sort oldest first, but keep the highlighted one on top
+                slotMatches.sort((a, b) => {
+                    const activeIdx = window.activeAdminResIndex;
+                    if (activeIdx !== null) {
+                        if (a.resIdx === activeIdx && b.resIdx !== activeIdx) return -1;
+                        if (b.resIdx === activeIdx && a.resIdx !== activeIdx) return 1;
+                    }
+                    return a.createdTs - b.createdTs;
+                });
+
+                const hasMatches = slotMatches.length > 0;
+                const hasApproved = slotMatches.some(m => m.status === 'approved');
+                const hasPendingOnly = slotMatches.some(m => m.status === 'pending') && !hasApproved;
+
+                const createCard = (state, text = '', options = {}) => {
+                    const card = document.createElement('div');
+                    card.classList.add('time-slot', 'slot-card', state);
+                    if (options.resIdx !== undefined) {
+                        card.dataset.resIndex = options.resIdx;
+                    }
+                    card.dataset.time = time;
+                    card.dataset.day = slotDayStr;
+                    card.dataset.fullDate = dayDate.toISOString();
+                    if (state === 'free') card.dataset.originalState = 'free';
+                    if (state === 'processing') card.dataset.originalState = 'processing';
+                    const label = text || (state === 'free' ? window.t('available') : window.t(state === 'processing' ? 'pending' : state === 'taken' ? 'booked' : 'blocked'));
+                    const orderBadge = options.orderNumber ? `#${options.orderNumber} ` : '';
+                    card.innerText = `${orderBadge}${label}`;
+
+                    if (options.highlight) {
+                        card.classList.add('highlight-slot');
+                    }
+
+                    card.addEventListener('click', () => {
+                        if (isAdmin && card.dataset.resIndex !== undefined) {
+                            const idx = parseInt(card.dataset.resIndex, 10);
+                            window.activeAdminResIndex = (window.activeAdminResIndex === idx) ? null : idx;
+                            window.dispatchEvent(new Event('adminHighlightChange'));
+                        }
+                        if (card.classList.contains('free') || card.classList.contains('selected') || card.classList.contains('processing')) {
+                            onSlotClickCallback(card);
+                        }
+                    });
+
+                    // Add cancellation button for user's own reservations (non-admin only)
+                    if (options.isOwner && !isAdmin && (state === 'processing' || state === 'taken')) {
+                        card.classList.add('own-slot');
+                        const cancelBtn = document.createElement('div');
+                        cancelBtn.innerHTML = '&times;';
+                        cancelBtn.className = 'cancel-own-btn';
+                        cancelBtn.title = window.t('cancelRes');
+                        cancelBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const allRes = JSON.parse(localStorage.getItem('reservations')) || [];
+                            const targetRes = allRes[options.resIdx];
+                            if (!targetRes) return;
+
+                            const executeCancel = async (cancelFull) => {
+                                if (cancelFull) {
+                                    targetRes.status = 'cancelled';
                                 } else {
-                                    if (cellDate.getTime() === slotDate.getTime()) isMatch = true;
+                                    targetRes.slots = targetRes.slots.filter(s => !(s.time === time && s.day === slotDayStr));
+                                    if (targetRes.slots.length === 0) targetRes.status = 'cancelled';
                                 }
-                            } else {
-                                if (s.day === slotDayStr) isMatch = true; // Fallback
-                            }
-
-                            if (!isMatch) return;
-
-                            slotResIndex = reservations.indexOf(res);
-
-                            const isOwnerMatch = currentUser === res.email || currentUser === res.phone;
-                            if (isOwnerMatch) {
-                                isOwner = true;
-                                ownerResIndex = reservations.indexOf(res);
-                            }
-                            
-                            if (res.status === 'pending') isPending = true;
-                            if (res.status === 'approved') isApproved = true;
-                            
-                            if (isAdmin || isOwnerMatch) {
-                                const untilTxt = res.recurring === 'weekly' && res.endDate ? `(${window.t('until')} ${new Date(res.endDate).toLocaleDateString()})` : (res.recurring === 'weekly' ? `(${window.t('weekly')})` : '');
-                                clientInfo = `${res.fname}\n${untilTxt}`.trim();
-                            } else {
-                                clientInfo = ''; // Mask name for privacy
-                            }
-                            
-                            if (activeSearchTerm) {
-                                const searchStr = `${res.fname} ${res.lname} ${res.email} ${res.phone} ${res.slots.map(sl=>sl.day).join(' ')}`.toLowerCase();
-                                if (searchStr.includes(activeSearchTerm)) {
-                                    isHighlighted = true;
+                                if (targetRes._id) {
+                                    try {
+                                        await fetch(`/api/reservations/${targetRes._id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ status: targetRes.status, slots: targetRes.slots })
+                                        });
+                                        await window.fetchReservations();
+                                    } catch(e) { console.error(e); }
+                                } else {
+                                    localStorage.setItem('reservations', JSON.stringify(allRes));
+                                    window.dispatchEvent(new Event('reservationsUpdated'));
                                 }
-                            }
-                        }
-                    });
-                });
+                            };
 
-                if (slotResIndex !== null) {
-                    slot.dataset.resIndex = slotResIndex;
-                    if (isAdmin && window.activeAdminResIndex === slotResIndex) {
-                        isHighlighted = true;
+                            if (targetRes.slots.length > 1) {
+                                window.showDialog({
+                                    title: window.t('modifyRes'),
+                                    message: window.t('modResMsg'),
+                                    buttons: [
+                                        { text: window.t('cancelEntire'), class: 'btn-danger w-100', onClick: () => executeCancel(true) },
+                                        { text: window.t('removeHour'), class: 'btn-warning w-100', onClick: () => executeCancel(false) },
+                                        { text: window.t('goBack'), class: 'btn-secondary w-100' }
+                                    ]
+                                });
+                            } else {
+                                window.showDialog({
+                                    title: window.t('cancelRes'),
+                                    message: window.t('cancelResConf'),
+                                    buttons: [
+                                        { text: window.t('yesCancel'), class: 'btn-danger w-100', onClick: () => executeCancel(true) },
+                                        { text: window.t('noKeep'), class: 'btn-secondary w-100' }
+                                    ]
+                                });
+                            }
+                        });
+                        card.appendChild(cancelBtn);
                     }
-                }
 
-                if (isBlocked) {
-                    slot.classList.add('time-slot', 'blocked');
-                    slot.innerText = clientInfo;
-                } else if (isApproved) {
-                    slot.classList.add('time-slot', 'taken');
-                    slot.innerText = clientInfo ? `${window.t('booked')}:\n${clientInfo}` : window.t('booked');
-                } else if (isPending) {
-                    slot.classList.add('time-slot', 'processing');
-                    slot.innerText = clientInfo ? `${window.t('pending')}:\n${clientInfo}` : window.t('pending');
-                    slot.dataset.originalState = 'processing';
+                    slotStack.appendChild(card);
+                };
+
+                if (!hasMatches) {
+                    createCard('free');
                 } else {
-                    slot.classList.add('time-slot', 'free');
-                    slot.innerText = window.t('available');
-                    slot.dataset.originalState = 'free';
-                }
+                    slotMatches.forEach((match, idxOrder) => {
+                        let label = '';
+                        if (match.cardState === 'taken') label = match.text ? `${window.t('booked')}:\n${match.text}` : window.t('booked');
+                        else if (match.cardState === 'processing') label = match.text ? `${window.t('pending')}:\n${match.text}` : window.t('pending');
+                        else if (match.cardState === 'blocked') label = match.text || window.t('blocked');
+                        else label = match.text || window.t('available');
 
-                slot.addEventListener('click', (e) => {
-                    if (isAdmin && slot.dataset.resIndex !== undefined) {
-                        const idx = parseInt(slot.dataset.resIndex);
-                        window.activeAdminResIndex = (window.activeAdminResIndex === idx) ? null : idx;
-                        window.dispatchEvent(new Event('adminHighlightChange'));
-                    }
-                    if (slot.classList.contains('free') || slot.classList.contains('selected') || slot.classList.contains('processing')) {
-                        onSlotClickCallback(slot);
-                    }
-                });
-
-                slot.dataset.time = time;
-                slot.dataset.day = slotDayStr;
-                slot.dataset.fullDate = dayDate.toISOString();
-
-                if (isHighlighted) {
-                    slot.classList.add('highlight-slot');
-                }
-
-                // Add cancellation button for the user's own reservations
-                if (isOwner && !isAdmin && (isPending || isApproved)) {
-                    slot.classList.add('own-slot');
-                    const cancelBtn = document.createElement('div');
-                    cancelBtn.innerHTML = '&times;';
-                    cancelBtn.className = 'cancel-own-btn';
-                    cancelBtn.title = window.t('cancelRes');
-                    cancelBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const allRes = JSON.parse(localStorage.getItem('reservations')) || [];
-                        const targetRes = allRes[ownerResIndex];
-                        if (!targetRes) return;
-
-                        const executeCancel = async (cancelFull) => {
-                            if (cancelFull) {
-                                targetRes.status = 'cancelled';
-                            } else {
-                                targetRes.slots = targetRes.slots.filter(s => !(s.time === time && s.day === slotDayStr));
-                                if (targetRes.slots.length === 0) targetRes.status = 'cancelled';
-                            }
-                            if (targetRes._id) {
-                                try {
-                                    await fetch(`/api/reservations/${targetRes._id}`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ status: targetRes.status, slots: targetRes.slots })
-                                    });
-                                    await window.fetchReservations();
-                                } catch(e) { console.error(e); }
-                            } else {
-                                localStorage.setItem('reservations', JSON.stringify(allRes));
-                                window.dispatchEvent(new Event('reservationsUpdated'));
-                            }
-                        };
-
-                        if (targetRes.slots.length > 1) {
-                            window.showDialog({
-                                title: window.t('modifyRes'),
-                                message: window.t('modResMsg'),
-                                buttons: [
-                                    { text: window.t('cancelEntire'), class: 'btn-danger w-100', onClick: () => executeCancel(true) },
-                                    { text: window.t('removeHour'), class: 'btn-warning w-100', onClick: () => executeCancel(false) },
-                                    { text: window.t('goBack'), class: 'btn-secondary w-100' }
-                                ]
-                            });
-                        } else {
-                            window.showDialog({
-                                title: window.t('cancelRes'),
-                                message: window.t('cancelResConf'),
-                                buttons: [
-                                    { text: window.t('yesCancel'), class: 'btn-danger w-100', onClick: () => executeCancel(true) },
-                                    { text: window.t('noKeep'), class: 'btn-secondary w-100' }
-                                ]
-                            });
-                        }
+                        createCard(match.cardState, label, { 
+                            resIdx: match.resIdx, 
+                            isOwner: match.isOwner, 
+                            highlight: match.highlight,
+                            orderNumber: idxOrder + 1
+                        });
                     });
-                    slot.appendChild(cancelBtn);
+
+                    // If only pending reservations are present (no approved), keep the slot tappable for waitlist/selection
+                    if (hasPendingOnly && !isAdmin) {
+                        slotStack.querySelectorAll('.slot-card.processing').forEach(card => {
+                            card.dataset.originalState = 'processing';
+                        });
+                    }
                 }
 
-                scheduleGrid.appendChild(slot);
+                scheduleGrid.appendChild(slotContainer);
             });
         });
     }

@@ -1,4 +1,19 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Global API base resolver and fetch interceptor for file/Live Server usage
+    window.getApiBase = function() {
+        return window.API_BASE 
+            || localStorage.getItem('apiBase') 
+            || (location.port === '5500' ? 'http://localhost:3000' : '');
+    };
+    (function(origFetch){
+        window.fetch = function(url, opts) {
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                url = window.getApiBase() + url;
+            }
+            return origFetch(url, opts);
+        };
+    })(window.fetch);
+
     window.fetchReservations = async function() {
         try {
             const selectedProfile = window.getSelectedProfile();
@@ -69,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.adminSchedule = initSchedule('admin-schedule-grid', { prev: 'admin-prev-week-btn', next: 'admin-next-week-btn', display: 'admin-week-display' },
         (clickedSlot) => {
             if (!clickedSlot.classList.contains('free')) return;
-            const newRes = { fname: "Admin", lname: "Block", email: "", phone: "", message: "Manual admin reservation", recurring: "one-time", status: "pending", slots: [{ day: clickedSlot.dataset.day, time: clickedSlot.dataset.time }] };
+            const newRes = { adminProfile: window.getSelectedProfile(), fname: "Admin", lname: "Block", email: "", phone: "", message: "Manual admin reservation", recurring: "one-time", status: "pending", slots: [{ day: clickedSlot.dataset.day, time: clickedSlot.dataset.time }] };
             
             fetch('/api/reservations', {
                 method: 'POST',

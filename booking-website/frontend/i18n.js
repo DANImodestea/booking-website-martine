@@ -87,6 +87,7 @@ window.translations = {
         cancelResConf: "Êtes-vous sûr de vouloir annuler cette réservation ?",
         yesCancel: "Oui, annuler",
         noKeep: "Non, garder",
+        selectAtLeastOne: "Veuillez sélectionner au moins un créneau à valider.",
         inputReq: "Saisie requise",
         inputReqMsg: "Veuillez entrer un email ou numéro de téléphone.",
         ok: "OK",
@@ -117,6 +118,7 @@ window.translations = {
         to: "au",
         type: "Type",
         slots: "Créneaux",
+        selectAll: "Tout sélectionner",
         note: "Note",
         start: "Début",
         end: "Fin",
@@ -125,7 +127,8 @@ window.translations = {
         navLinkedInDesc: "Voir mon profil",
         navEmail: "Me contacter par Email",
         navPhone: "Téléphone :",
-        navAvailability: "Disponible pour échanger tous les jours de 9h à 13h",
+        martineAvailability: "Disponible pour échanger tous les jours de 9h à 13h",
+        daniAvailability: "Disponible de 8h à 19h pour échanger",
         readyToBook: "Prêt à réserver ?",
         selectSlotsText: "Sélectionnez un ou plusieurs créneaux verts sur le calendrier, puis cliquez sur le bouton ci-dessous.",
         bookBtnDefault: "Sélectionnez un créneau"
@@ -216,6 +219,7 @@ window.translations = {
         cancelResConf: "Are you sure you want to cancel this reservation?",
         yesCancel: "Yes, Cancel",
         noKeep: "No, Keep it",
+        selectAtLeastOne: "Please select at least one slot to approve.",
         inputReq: "Input Required",
         inputReqMsg: "Please enter an email or phone number.",
         ok: "OK",
@@ -246,6 +250,7 @@ window.translations = {
         to: "to",
         type: "Type",
         slots: "Slots",
+        selectAll: "Select All",
         note: "Note",
         start: "Start",
         end: "End",
@@ -254,7 +259,8 @@ window.translations = {
         navLinkedInDesc: "View my profile",
         navEmail: "Contact me via Email",
         navPhone: "Phone:",
-        navAvailability: "Available to speak everyday from 9am to 1pm",
+        martineAvailability: "Available to speak everyday from 9am to 1pm",
+        daniAvailability: "Available to speak everyday from 8am to 7pm",
         readyToBook: "Ready to book?",
         selectSlotsText: "Select one or more green slots on the calendar, then click the button below.",
         bookBtnDefault: "Select a slot"
@@ -284,28 +290,32 @@ window.applyTranslations = function() {
 document.addEventListener("DOMContentLoaded", () => {
     window.applyTranslations();
 
-    const langBtn = document.getElementById('lang-btn');
-    const langMenu = document.getElementById('lang-menu');
+    const flags = { fr: '🇫🇷', en: '🇬🇧' };
     
-    if (langBtn && langMenu) {
-        const flags = { fr: '🇫🇷', en: '🇬🇧' };
-        langBtn.innerHTML = flags[window.currentLang];
-
-        langBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            langMenu.style.display = langMenu.style.display === 'block' ? 'none' : 'block';
-        });
-        document.addEventListener('click', () => langMenu.style.display = 'none');
-
-        document.querySelectorAll('.lang-option').forEach(opt => {
-            opt.addEventListener('click', (e) => {
-                const lang = e.currentTarget.getAttribute('data-lang');
-                localStorage.setItem('lang', lang);
-                window.currentLang = lang;
-                langBtn.innerHTML = flags[lang];
-                langMenu.style.display = 'none';
-                window.applyTranslations();
+    document.querySelectorAll('.lang-selector').forEach(selector => {
+        const btn = selector.querySelector('.lang-btn');
+        const menu = selector.querySelector('.lang-menu');
+        if (btn && menu) {
+            btn.innerHTML = flags[window.currentLang];
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = menu.style.display === 'block';
+                document.querySelectorAll('.lang-menu').forEach(m => m.style.display = 'none');
+                menu.style.display = isVisible ? 'none' : 'block';
             });
+        }
+    });
+
+    document.addEventListener('click', () => document.querySelectorAll('.lang-menu').forEach(m => m.style.display = 'none'));
+
+    document.querySelectorAll('.lang-option').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            const lang = e.currentTarget.getAttribute('data-lang');
+            localStorage.setItem('lang', lang);
+            window.currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.innerHTML = flags[lang]);
+            document.querySelectorAll('.lang-menu').forEach(m => m.style.display = 'none');
+            window.applyTranslations();
         });
-    }
+    });
 });

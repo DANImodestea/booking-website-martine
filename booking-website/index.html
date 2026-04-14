@@ -7,41 +7,95 @@
     <!-- Add Bootstrap 5 for clean responsive layouts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="frontend/styles.css">
+    <style>
+        /* Print styling for CV Modals */
+        @media print {
+            body > *:not(.custom-modal) { display: none !important; }
+            .custom-modal:not([style*="display: flex"]):not([style*="display: block"]) { display: none !important; }
+            .custom-modal { position: absolute !important; left: 0 !important; top: 0 !important; background: none !important; padding: 0 !important; display: block !important; height: auto !important; overflow: visible !important; align-items: flex-start !important; }
+            .modal-content { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; max-height: none !important; height: auto !important; }
+            .no-print { display: none !important; }
+            .modal-content .cv-body { font-size: 12px; }
+        }
+        
+        /* Profile Selector & Navbar Image Hover Effects */
+        .profile-card .profile-circle {
+            filter: blur(5px) grayscale(30%);
+            opacity: 0.85;
+            transition: filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+        }
+        .profile-card {
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .profile-card:hover {
+            transform: scale(1.08);
+        }
+        .profile-card:hover .profile-circle {
+            filter: blur(0) grayscale(0%);
+            opacity: 1;
+        }
+        .nav-profile-img {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .nav-profile-img:hover {
+            transform: scale(1.15) rotate(-4deg);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.25) !important;
+        }
+
+        /* Modern Navbar Styling */
+        .nav-contact-pill {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .nav-contact-pill:hover, a.nav-contact-pill:hover {
+            background-color: #ffffff;
+            transform: translateY(-2px);
+            border-color: #dee2e6;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        .contact-icon { flex-shrink: 0; }
+    </style>
 </head>
 <body class="bg-light">
     <!-- Profile Selection Modal (Appears First) -->
     <div id="profile-modal" class="custom-modal" style="display: flex;">
         <div class="modal-content shadow text-center position-relative">
-            <!-- Language Selector -->
-            <div class="lang-selector position-absolute top-0 end-0 m-3 text-start">
-                <button id="lang-btn" class="btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
-                <div id="lang-menu" class="lang-menu shadow-sm border rounded bg-white mt-1">
-                    <div class="lang-option p-2 border-bottom" data-lang="fr">🇫🇷 Français</div>
-                    <div class="lang-option p-2" data-lang="en">🇬🇧 English</div>
+            
+            <!-- Language Selector (Top Right) -->
+            <div class="lang-selector position-absolute top-0 end-0 m-3 text-end">
+                <button class="lang-btn btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
+                <div class="lang-menu shadow-sm border rounded bg-white mt-1" style="display: none; position: absolute; right: 0; z-index: 1055;">
+                    <div class="lang-option p-2 border-bottom text-start" data-lang="fr" style="cursor:pointer;">🇫🇷 Français</div>
+                    <div class="lang-option p-2 text-start" data-lang="en" style="cursor:pointer;">🇬🇧 English</div>
                 </div>
             </div>
             
-            <h2 class="fw-bold mt-4 mb-3" id="profile-title" data-i18n="profileTitle">Choisissez votre coach</h2>
+            <h2 class="fw-bold mt-5 mb-3" id="profile-title" data-i18n="profileTitle">Choisissez votre coach</h2>
             <p class="text-muted mb-5" id="profile-subtitle" data-i18n="profileSubtitle">Sélectionnez le coach avec lequel vous souhaitez travailler :</p>
             
             <div class="d-flex justify-content-center gap-5 mt-4 flex-wrap">
                 <!-- Martine Profile -->
                 <div class="profile-card text-center cursor-pointer" id="profile-martine" style="width: 150px; cursor: pointer;">
-                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s ease;">
-                        <span style="font-size: 60px;">💪</span>
-                    </div>
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: center; background-repeat: no-repeat; background-image: url('img/Martine.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #667eea; transition: transform 0.3s ease, filter 0.3s ease;"></div>
                     <h3 class="fw-bold mt-3" style="color: #333;">Martine</h3>
-                    <p class="text-muted small" data-i18n="martineDesc">Coach de fitness personnel</p>
+                    <p class="text-muted small" data-i18n="martineDesc">Enseignante d'anglais</p>
+                    <button id="btn-martine-cv" class="btn btn-sm btn-outline-primary mt-2 w-100">Profil & CV</button>
                 </div>
 
                 <!-- Dani Profile -->
                 <div class="profile-card text-center cursor-pointer" id="profile-dani" style="width: 150px; cursor: pointer;">
-                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s ease;">
-                        <span style="font-size: 60px;">🎯</span>
-                    </div>
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: top center; background-repeat: no-repeat; background-image: url('img/Dani.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #f5576c; transition: transform 0.3s ease, filter 0.3s ease;"></div>
                     <h3 class="fw-bold mt-3" style="color: #333;">Dani</h3>
-                    <p class="text-muted small" data-i18n="daniDesc">Coach de développement personnel</p>
+                    <p class="text-muted small" data-i18n="daniDesc">Enseignant d'anglais</p>
+                    <button id="btn-dani-cv" class="btn btn-sm btn-outline-danger mt-2 w-100">Profil & CV</button>
                 </div>
+            </div>
+
+            <!-- Admin Login Button (Middle Bottom) -->
+            <div class="mt-4 pt-4 border-top">
+                <button id="btn-admin-from-profile" class="btn btn-outline-danger fw-bold px-4 rounded-pill">Admin Login</button>
             </div>
         </div>
     </div>
@@ -49,16 +103,21 @@
     <!-- Role Selection Modal -->
     <div id="role-modal" class="custom-modal" style="display: none;">
         <div class="modal-content shadow text-center position-relative">
-            <!-- Language Selector -->
-            <div class="lang-selector position-absolute top-0 end-0 m-3 text-start">
-                <button id="lang-btn" class="btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
-                <div id="lang-menu" class="lang-menu shadow-sm border rounded bg-white mt-1">
-                    <div class="lang-option p-2 border-bottom" data-lang="fr">🇫🇷 Français</div>
-                    <div class="lang-option p-2" data-lang="en">🇬🇧 English</div>
+            <!-- Back Button -->
+            <div class="position-absolute top-0 start-0 m-3">
+                <button id="btn-back-from-role" class="btn btn-outline-secondary fw-bold">← Retour</button>
+            </div>
+            
+            <!-- Language Selector (Top Right) -->
+            <div class="lang-selector position-absolute top-0 end-0 m-3 text-end">
+                <button class="lang-btn btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
+                <div class="lang-menu shadow-sm border rounded bg-white mt-1" style="display: none; position: absolute; right: 0; z-index: 1055;">
+                    <div class="lang-option p-2 border-bottom text-start" data-lang="fr" style="cursor:pointer;">🇫🇷 Français</div>
+                    <div class="lang-option p-2 text-start" data-lang="en" style="cursor:pointer;">🇬🇧 English</div>
                 </div>
             </div>
             
-            <h2 class="fw-bold mt-2" id="role-title" data-i18n="roleTitle">Bienvenue</h2>
+            <h2 class="fw-bold mt-5" id="role-title" data-i18n="roleTitle">Bienvenue</h2>
             <p class="text-muted" id="role-subtitle" data-i18n="roleSubtitle">Veuillez sélectionner votre rôle pour continuer :</p>
             <div class="d-flex justify-content-center gap-3 mt-4">
                 <button id="btn-guest" class="btn btn-success px-4 py-2" data-i18n="btnGuest">Réservation Invité</button>
@@ -69,9 +128,10 @@
 
     <!-- Guest Login Modal -->
     <div id="guest-login-modal" class="custom-modal">
-        <div class="modal-content shadow text-center">
-            <span class="close-btn" id="close-guest-login">&times;</span>
-            <h2 class="fw-bold mb-4" data-i18n="guestLoginTitle">Connexion Invité</h2>
+        <div class="modal-content shadow text-center position-relative">
+            <button id="btn-back-from-guest-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
+            <span class="close-btn" id="close-guest-login" style="right: 15px; top: 10px;">&times;</span>
+            <h2 class="fw-bold mb-4 mt-5" data-i18n="guestLoginTitle">Connexion Invité</h2>
             <div class="mb-4 text-start">
                 <label class="form-label fw-bold" data-i18n="guestIdLabel">Email ou Numéro de téléphone</label>
                 <input type="text" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email ou téléphone...">
@@ -82,9 +142,10 @@
 
     <!-- Admin Login Modal -->
     <div id="login-modal" class="custom-modal">
-        <div class="modal-content shadow">
-            <span class="close-btn" id="close-login">&times;</span>
-            <h2 class="fw-bold mb-4" data-i18n="adminLoginTitle">Connexion Admin</h2>
+        <div class="modal-content shadow position-relative">
+            <button id="btn-back-from-admin-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
+            <span class="close-btn" id="close-login" style="right: 15px; top: 10px;">&times;</span>
+            <h2 class="fw-bold mb-4 mt-5 text-center" data-i18n="adminLoginTitle">Connexion Admin</h2>
             <div class="mb-3">
                 <label class="form-label fw-bold" data-i18n="adminUserLabel">Nom d'utilisateur</label>
                 <input type="text" id="admin-user" class="form-control" data-i18n-placeholder="adminUserPlaceholder" placeholder="Entrez le nom d'utilisateur">
@@ -100,44 +161,54 @@
     <!-- Guest Booking Interface -->
     <div id="guest-view" class="container-fluid py-4" style="display: none;">
         <!-- Guest Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-5 rounded px-3 border">
+        <nav class="navbar navbar-expand-xl navbar-light bg-white shadow-sm mb-5 rounded-4 px-4 py-3 border-0">
             <div class="container-fluid">
-                <span class="navbar-brand fw-bold text-success mb-0 h2">Martine Juillan</span>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#guestNavbar">
+                <span class="navbar-brand text-dark mb-0 d-flex align-items-center">
+                    <img id="guest-nav-img" src="img/Martine.jpeg" alt="Profile" class="rounded-circle me-3 shadow-sm nav-profile-img" style="width: 65px; height: 65px; object-fit: cover; object-position: top; border: 3px solid #fff; outline: 2px solid #198754;">
+                    <div class="d-flex flex-column">
+                        <span id="guest-nav-name" class="fs-4 fw-bold lh-1 mb-1">Martine Juillan</span>
+                        <span class="text-success fw-bold" style="font-size: 0.95rem;" data-i18n="scheduleTitle">Planifier un cours</span>
+                    </div>
+                </span>
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#guestNavbar">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="guestNavbar">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-stretch gap-3 ms-lg-4">
-                        <li class="nav-item flex-fill">
-                            <a href="https://www.linkedin.com/in/martine-juillan/" target="_blank" class="btn btn-light border text-center text-lg-start w-100 h-100 px-3 py-2 d-flex flex-column justify-content-center shadow-sm text-decoration-none">
-                                <span class="fw-bold text-primary"><span style="font-size:1.1rem">💼</span> <span data-i18n="navLinkedIn">LinkedIn</span></span>
-                                <small class="text-muted" style="font-size: 0.8rem;" data-i18n="navLinkedInDesc">Voir mon profil</small>
+                    <ul class="navbar-nav me-auto mb-2 mb-xl-0 align-items-xl-center gap-2 ms-xl-4">
+                        <li class="nav-item">
+                            <a id="nav-linkedin" href="https://www.linkedin.com/in/martine-juillan/" target="_blank" class="nav-contact-pill d-flex align-items-center gap-3 text-decoration-none px-3 py-2 rounded-pill">
+                                    <span class="contact-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">LI</span>
+                                <div class="d-flex flex-column justify-content-center text-start">
+                                    <span class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;" data-i18n="navLinkedIn">LinkedIn</span>
+                                    <small class="text-muted lh-1" style="font-size: 0.8rem;" data-i18n="navLinkedInDesc">Voir mon profil</small>
+                                </div>
                             </a>
                         </li>
-                        <li class="nav-item flex-fill">
-                            <a href="mailto:mjuillan38@gmail.com" class="btn btn-light border text-center text-lg-start w-100 h-100 px-3 py-2 d-flex flex-column justify-content-center shadow-sm text-decoration-none">
-                                <span class="fw-bold text-danger"><span style="font-size:1.1rem">📧</span> <span data-i18n="navEmail">Me contacter par Email</span></span>
-                                <small class="text-muted" style="font-size: 0.8rem;">mjuillan38@gmail.com</small>
+                        <li class="nav-item">
+                            <a id="nav-email-link" href="mailto:mjuillan38@gmail.com" class="nav-contact-pill d-flex align-items-center gap-3 text-decoration-none px-3 py-2 rounded-pill">
+                                    <span class="contact-icon bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">@</span>
+                                <div class="d-flex flex-column justify-content-center text-start">
+                                    <span class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;" data-i18n="navEmail">Me contacter par Email</span>
+                                    <small id="nav-email-text" class="text-muted lh-1" style="font-size: 0.8rem;">mjuillan38@gmail.com</small>
+                                </div>
                             </a>
                         </li>
-                        <li class="nav-item flex-fill">
-                            <div class="bg-light border rounded text-center text-lg-start w-100 h-100 px-3 py-2 d-flex flex-column justify-content-center shadow-sm">
-                                <span class="fw-bold text-dark"><span style="font-size:1.1rem">📞</span> <span data-i18n="navPhone">Téléphone :</span> 06 76 10 02 23</span>
-                                <small class="text-muted" style="font-size: 0.8rem;" data-i18n="navAvailability">Disponible pour échanger tous les jours de 9h à 13h</small>
-                            </div>
+                        <li class="nav-item">
+                            <a id="nav-phone-link" href="tel:+33676100223" class="nav-contact-pill d-flex align-items-center gap-3 text-decoration-none px-3 py-2 rounded-pill">
+                                    <span class="contact-icon bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">TEL</span>
+                                <div class="d-flex flex-column justify-content-center text-start">
+                                    <span id="nav-phone-text" class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;">06 76 10 02 23</span>
+                                    <small id="nav-avail-text" class="text-muted lh-1" style="font-size: 0.8rem;" data-i18n="navAvailability">Disponible pour échanger tous les jours de 9h à 13h</small>
+                                </div>
+                            </a>
                         </li>
                     </ul>
-                    <div class="d-flex justify-content-center mt-3 mt-lg-0">
-                        <button id="btn-guest-logout" class="btn btn-outline-danger fw-bold" data-i18n="logoutBtn">Déconnexion</button>
+                    <div class="d-flex justify-content-start mt-3 mt-xl-0 ms-xl-3 ps-3 ps-xl-0">
+                        <button id="btn-guest-logout" class="btn btn-light rounded-pill border shadow-sm fw-bold px-4 py-2 text-danger" data-i18n="logoutBtn">Déconnexion</button>
                     </div>
                 </div>
             </div>
         </nav>
-
-        <header class="text-center mb-5">
-            <h1 class="display-5 fw-bold text-success" data-i18n="scheduleTitle">Planifier un cours</h1>
-            <p class="lead text-muted" data-i18n="scheduleSubtitle">Sélectionnez les créneaux verts disponibles pour demander une réservation.</p>
-        </header>
 
         <main class="d-flex flex-column flex-xl-row w-100 align-items-start" style="gap: 1.5rem;">
             <!-- Left: Sidebar Actions & Reservations -->
@@ -183,15 +254,18 @@
 
     <!-- Admin Dashboard Interface -->
     <div id="admin-view" class="container-fluid py-4" style="display: none;">
-        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border">
-            <div>
-                <h1 class="h3 mb-0 fw-bold text-success" id="admin-title" data-i18n="adminDashboard">Tableau de bord Admin</h1>
-                <p class="text-muted mb-0" data-i18n="manageClient">Gérer les réservations clients</p>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 bg-white p-4 rounded-4 shadow-sm border-0 gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <img id="admin-nav-img" src="img/Martine.jpeg" alt="Profile" class="rounded-circle shadow-sm nav-profile-img" style="width: 65px; height: 65px; object-fit: cover; object-position: top; border: 3px solid #fff; outline: 2px solid #0dcaf0;">
+                <div>
+                    <h1 class="h3 mb-1 fw-bold text-dark" id="admin-title">Tableau de bord Admin</h1>
+                    <p class="text-muted mb-0" data-i18n="manageClient">Gérer les réservations clients</p>
+                </div>
             </div>
-            <div>
-                <button id="btn-change-profile" class="btn btn-outline-info fw-bold me-2" data-i18n="changeProfileBtn">Changer de profil</button>
-                <button id="btn-block-time" class="btn btn-outline-secondary fw-bold me-2" data-i18n="blockTimeBtn">Bloquer un créneau</button>
-                <button id="btn-logout" class="btn btn-outline-danger fw-bold" data-i18n="logoutBtn">Déconnexion</button>
+            <div class="d-flex flex-wrap gap-2">
+                <button id="btn-change-profile" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-info">🔄 <span data-i18n="changeProfileBtn">Changer de profil</span></button>
+                <button id="btn-block-time" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-secondary">🗓️ <span data-i18n="blockTimeBtn">Bloquer un créneau</span></button>
+                <button id="btn-logout" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-danger">🚪 <span data-i18n="logoutBtn">Déconnexion</span></button>
             </div>
         </div>
         
@@ -414,6 +488,153 @@
             <p id="dialog-message" class="text-muted mb-4"></p>
             <div id="dialog-buttons" class="d-flex justify-content-center flex-column gap-2">
                 <!-- Buttons will be injected here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CV Modals -->
+    <!-- Martine CV Modal -->
+    <div id="cv-modal-martine" class="custom-modal" style="display: none; z-index: 1050;">
+        <div class="modal-content shadow" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;" id="cv-content-martine">
+            <span class="close-btn" style="z-index: 1060;" onclick="document.getElementById('cv-modal-martine').style.display='none'">&times;</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-3 mb-4 no-print mt-2">
+                <h3 class="fw-bold mb-0">Profil & CV - Martine</h3>
+                <div class="mt-3 mt-sm-0 d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()">🖨️ Imprimer</button>
+                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1dX0SJSEs0SP9DHlQ-SFY6fAJDfkcIaeF?usp=sharing">🔗 Partager</button>
+                </div>
+            </div>
+            <div class="cv-body text-start">
+                <div class="text-center mb-4">
+                    <img src="img/Martine.jpeg" class="rounded-circle mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                    <h2 class="fw-bold text-primary">MARTINE JUILLAN</h2>
+                    <h5 class="text-muted">Enseignante d’anglais pour enfants et adultes dans le privé</h5>
+                    <p class="mt-3">Enseignante d’anglais, je souhaite me reconvertir dans l’administration, où je pourrai appliquer pleinement mes capacités rédactionnelles, au sein d’une équipe soudée, avec des missions proposées variées. J’aimerais retravailler pour l’Université Grenoble Alpes, un établissement que je connais fort bien.</p>
+                </div>
+                
+                <div class="row mb-4 bg-light p-3 rounded">
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📧 mjuillan38@gmail.com</div>
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📞 06 76 10 02 23</div>
+                    <div class="col-md-4 text-center"><a href="https://www.linkedin.com/in/martine-juillan/" target="_blank" class="text-decoration-none fw-bold">LinkedIn</a></div>
+                </div>
+
+                <h4 class="fw-bold text-primary border-bottom pb-2">EXPÉRIENCES PROFESSIONNELLES</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - Les Petits Bilingues (Grenoble)</strong><span class="text-muted small">2021 - Présent</span></div>
+                        <p class="mb-0 small">➔ Cours en privé pour adultes, Cours en privé pour les 8 à 17 ans, et Cours en groupe pour les 3 à 16 ans.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - DLST à l’Université Grenoble Alpes (UGA)</strong><span class="text-muted small">février à mai 2024</span></div>
+                        <p class="mb-0 small">➔ Enseignement de l’anglais pour les étudiants en L1 de divers parcours scientifiques, axés sur la biologie, la technologie et la biochimie. Assurer le suivi des étudiants sur la plateforme Moodle.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Traductrice et Scénariste pédagogique (Noun Town)</strong><span class="text-muted small">avril à mai 2023</span></div>
+                        <p class="mb-0 small">➔ L'élaboration de supports de formation efficaces à travers l'utilisation de personnages fictifs pour créer des scénarios qui peuvent être appliqués dans des situations réelles en anglais.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante de traduction - LEA à l’Université Grenoble Alpes (UGA)</strong><span class="text-muted small">février à mai 2023</span></div>
+                        <p class="mb-0 small">➔ Enseignement de traduction de presse, de l’anglais vers le français pour les étudiants en L2 Langues Étrangères Appliquées.</p></li>
+                </ul>
+
+                <h4 class="fw-bold text-primary border-bottom pb-2">FORMATION</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Certification de Cambridge CELTA (Lyon)</strong><span class="text-muted small">nov. à déc. 2022</span></div>
+                        <p class="mb-0 small">➔ Pour enseigner l’anglais, notamment aux adultes. L’équivalent du DAEFLE en anglais.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais (UGA)</strong><span class="text-muted small">2017 - 2021</span></div>
+                        <p class="mb-0 small">➔ Développement des compétences en langues, cultures, traduction, analyse, et organisation, préparant à des carrières dans l’enseignement, le patrimoine, et la communication en anglais.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Lycée Horticole de St Ismier - Bac STAV</strong><span class="text-muted small">2014 - 2017</span></div>
+                        <p class="mb-0 small">➔ Baccalauréat en Sciences, Technologies, de l’Agronomie et du Vivant.</p></li>
+                </ul>
+
+                <h4 class="fw-bold text-primary border-bottom pb-2">COMPÉTENCES</h4>
+                <div class="row">
+                    <div class="col-md-9">
+                        <p class="small mb-2"><strong>Logiciels :</strong> Excel, Word, Powerpoint, Canva, Lumin, Moodle.</p>
+                        <p class="small mb-2"><strong>Savoir être :</strong> Enthousiaste, rigoureuse et sens du travail d’équipe.</p>
+                        <p class="small mb-2"><strong>Savoir faire :</strong> Bonne aptitude rédactionnelle, organiser des documents, gérer un meeting.</p>
+                        <p class="small mb-2"><strong>Centres d’intérêts :</strong> natation, cyclisme, athlétisme, livres de fiction historique, plantes, thé.</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="small mb-1"><strong>Langues :</strong></p>
+                        <ul class="small ps-3">
+                            <li>Anglais (C2)</li><li>Français (C2)</li><li>Espagnol (A2)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4 pt-3 border-top no-print">
+                    <p class="small fw-bold">Portfolio / Plus d'infos :</p>
+                    <a href="https://drive.google.com/drive/folders/1dX0SJSEs0SP9DHlQ-SFY6fAJDfkcIaeF?usp=sharing" target="_blank" class="btn btn-outline-primary btn-sm">Scanner / Voir le Code QR (Google Drive)</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dani CV Modal -->
+    <div id="cv-modal-dani" class="custom-modal" style="display: none; z-index: 1050;">
+        <div class="modal-content shadow" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;" id="cv-content-dani">
+            <span class="close-btn" style="z-index: 1060;" onclick="document.getElementById('cv-modal-dani').style.display='none'">&times;</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-3 mb-4 no-print mt-2">
+                <h3 class="fw-bold mb-0">Profil & CV - Dani</h3>
+                <div class="mt-3 mt-sm-0 d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()">🖨️ Imprimer</button>
+                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1O7YY3HdUIqphC8iI3-B6ROWp1ClH7SLh?usp=sharing">🔗 Partager</button>
+                </div>
+            </div>
+            <div class="cv-body text-start">
+                <div class="text-center mb-4">
+                    <img src="img/Dani.jpeg" class="rounded-circle mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover; object-position: top;">
+                    <h2 class="fw-bold text-danger">MOHAMED ALI CHEMSEDDINE ROUABAH</h2>
+                    <h5 class="text-muted">Master 2 Géomatique et Analyse Spatiale (GEOMAS) - Enseignant d'Anglais</h5>
+                    <p class="mt-3">Futur diplômé en Géomatique, à la recherche d’un stage de 4 - 6 mois à partir d’avril 2026. Spécialisé dans l’automatisation et le développement d’outils géomatiques de géovisualisation, je souhaite mettre mes compétences en géographie et programmation au service de vos projets spatiaux.</p>
+                </div>
+                
+                <div class="row mb-4 bg-light p-3 rounded">
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📧 kendanine8@gmail.com</div>
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📞 07 69 74 12 68</div>
+                    <div class="col-md-4 text-center"><a href="https://www.linkedin.com/in/mace-rouabah/" target="_blank" class="text-decoration-none fw-bold">LinkedIn</a></div>
+                </div>
+
+                <h4 class="fw-bold text-danger border-bottom pb-2">EXPÉRIENCE PROFESSIONNELLE</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 5 mois - Laboratoire PACTE</strong><span class="text-muted small">Avril 2025</span></div>
+                        <p class="mb-0 small">➔ Analyse cinématique des glaciers rocheux (LiDAR/IMCORR) et automatisation de traitements géospatiaux en Python et QGIS.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 3 mois - Digitalisation de Cartes Géomorphologiques (IUGA)</strong><span class="text-muted small">Janvier 2024</span></div>
+                        <p class="mb-0 small">➔ Digitalisation des cartes géomorphologiques de la région de la Haute Vallée de l’Ubaye en utilisant le logiciel QGIS.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Professeur d'Anglais</strong><span class="text-muted small">2019 - Présent</span></div>
+                        <p class="mb-0 small">➔ Soutien et accompagnement linguistique pour des apprenants de tous niveaux (A0-C2).</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Employé polyvalent (Restauration et Vente)</strong><span class="text-muted small">2016 - 2019</span></div>
+                        <p class="mb-0 small">➔ Diverses expériences (service, accueil client, vente, gestion des stocks).</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Bénévole 2 mois - Responsable d’Interprétation (Maison des Associations)</strong><span class="text-muted small">Septembre 2016</span></div>
+                        <p class="mb-0 small">➔ Responsable de l’interprétation pour les conseillers, gestion des fichiers.</p></li>
+                </ul>
+
+                <h4 class="fw-bold text-danger border-bottom pb-2">FORMATION</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Master - Géomatique et Analyse Spatiale (GEOMAS) (IUGA)</strong><span class="text-muted small">2024 - Présent</span></div>
+                        <p class="mb-0 small">➔ Développement & web mapping, data & automatisation, outils SIG, conception.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence - Géographie et Aménagement - Environnement (IUGA)</strong><span class="text-muted small">2021 - 2024</span></div>
+                        <p class="mb-0 small">➔ Analyse spatiale, statistique, SIG, cartographie, hydrologie, géomorphologie et télédétection.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais (UGA)</strong><span class="text-muted small">2017 - 2021</span></div>
+                        <p class="mb-0 small">➔ Maîtrise théorique (analyse des textes, culture) + compétences appliquées (traduction, interprétation, enseignement).</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat L (Grenoble)</strong><span class="text-muted small">2016 - 2017</span></div></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat S (Algérie)</strong><span class="text-muted small">2012 - 2015</span></div></li>
+                </ul>
+
+                <h4 class="fw-bold text-danger border-bottom pb-2">COMPÉTENCES</h4>
+                <div class="row">
+                    <div class="col-md-9">
+                        <p class="small mb-2"><strong>Logiciels et plateformes :</strong> RStudio (Leaflet, Shiny), Envi, OTB, QGIS (Qgis2threejs), ArcGIS Pro, Jupyter Notebook, SQLite, SAGA GIS, Base de Données, USE, VSCode, Figma, Microsoft 360, Inkscape, Magrit, Photoshop, Krita, Rhino, StarUML, AirTable, Vue, GitHub, GitLab, KMade, pgAdmin, PostgreSQL, Wireframe.</p>
+                        <p class="small mb-2"><strong>Analyse de données :</strong> Traitement statistique des données, Feature Tracking, Traitement des images satellites.</p>
+                        <p class="small mb-2"><strong>Cartographie :</strong> Création de cartes 2D/3D et analyses spatiales.</p>
+                        <p class="small mb-2"><strong>Compétences supplémentaires :</strong> Rédaction et analyse de données statistiques, programmation (Python, HTML, CSS, JavaScript, Bootstrap, UML), photogrammétrie, interprétation et traduction, gestion des risques (inondation, éboulement, feux de forêts).</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="small mb-1"><strong>Langues :</strong></p>
+                        <ul class="small ps-3">
+                            <li>Français</li><li>Anglais</li><li>Arabe</li><li>Japonais</li><li>Darja</li><li>Maltais</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4 pt-3 border-top no-print">
+                    <p class="small fw-bold">Portfolio / Plus d'infos :</p>
+                    <a href="https://drive.google.com/drive/folders/1O7YY3HdUIqphC8iI3-B6ROWp1ClH7SLh?usp=sharing" target="_blank" class="btn btn-outline-danger btn-sm">Scanner / Voir le Code QR (Google Drive)</a>
+                </div>
             </div>
         </div>
     </div>

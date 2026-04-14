@@ -78,6 +78,39 @@ body {
     position: relative;
 }
 
+/* Stacked slot container so overlapping reservations stay readable */
+.slot-cell {
+    position: relative;
+}
+.slot-stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+.slot-stack .slot-card {
+    width: 100%;
+}
+.slot-stack .slot-card + .slot-card {
+    margin-top: 4px;
+}
+.slot-stack .slot-card {
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    text-align: left;
+    padding-left: 10px;
+}
+.admin-res-card .slot-check-label.slot-unchecked {
+    opacity: 0.45;
+    filter: grayscale(1);
+}
+.slot-stack .slot-card:hover {
+    z-index: 2;
+}
+.slot-stack .slot-card.highlight-slot {
+    z-index: 3;
+}
+
 .time-slot:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow);
@@ -176,6 +209,24 @@ body {
 
 .admin-res-card.highlight-card:hover {
     transform: scale(1.02) translateY(-2px);
+}
+
+/* Admin reservation card colors aligned with slot states */
+.admin-res-card.status-pending {
+    background-color: #fff3cd;
+    border-color: #ffe69c;
+}
+.admin-res-card.status-approved {
+    background-color: #d1e7dd;
+    border-color: #a3cfbb;
+}
+.admin-res-card.status-rejected {
+    background-color: #f8d7da;
+    border-color: #f1aeb5;
+}
+.admin-res-card.status-blocked {
+    background-color: #e0e0e0;
+    border-color: #c7c7c7;
 }
 
 /* Modal Styling */
