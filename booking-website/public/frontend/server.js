@@ -1,4 +1,3 @@
-const functions = require('firebase-functions');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -17,6 +16,18 @@ console.log('[INFO] [STARTUP] Setting up CORS middleware');
 app.use(cors()); // Allows frontend to make requests to this backend
 console.log('[INFO] [STARTUP] Setting up JSON middleware');
 app.use(express.json()); // Allows backend to understand JSON data
+
+// Serve Frontend Static Files
+console.log('[INFO] [STARTUP] Serving frontend static files from:', path.join(__dirname, '../frontend'));
+app.use('/frontend', express.static(path.join(__dirname, '../frontend')));
+app.use('/img', express.static(path.join(__dirname, '../img')));
+app.get('/', (req, res) => {
+    console.log('\n[REQ] [API] GET / request received');
+    res.sendFile(path.join(__dirname, '../index.html'));
+});
+
+// Silence favicon missing errors
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Configure Email Transporters for Admins
 const transporters = {
@@ -986,5 +997,11 @@ app.get('/api/reservations/:id', async (req, res) => {
     }
 });
 
-// Export the Express app as a Firebase Cloud Function
-exports.api = functions.https.onRequest(app);
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`\n[START] [STARTUP] Backend Server running on http://localhost:${PORT}`);
+    console.log(`[TIME] [STARTUP] Server started at ${new Date().toISOString()}`);
+    console.log(`[NET] [STARTUP] Current MongoDB connection state: ${mongoose.connection.readyState}`);
+    console.log(`[OK] [STARTUP] Server is ready to accept requests\n`);
+});

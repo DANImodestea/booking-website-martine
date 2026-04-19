@@ -166,7 +166,12 @@ window.translations = {
         viewMessage: "Voir le message",
         resIdStr: "ID Réservation",
         savedProfiles: "Profils récents",
-        selectProfileOpt: "-- Sélectionner un profil récent --"
+        selectProfileOpt: "-- Sélectionner un profil récent --",
+        codeSentMsg: "Un code a été envoyé à votre adresse email.",
+        verifCodeLabel: "Code de vérification",
+        verifyBtn: "Vérifier",
+        changeEmailBtn: "Changer d'email",
+        verifyError: "Code de vérification invalide ou expiré."
     },
     en: {
         roleTitle: "Welcome",
@@ -333,7 +338,12 @@ window.translations = {
         viewMessage: "View Message",
         resIdStr: "Reservation ID",
         savedProfiles: "Recent Profiles",
-        selectProfileOpt: "-- Select a recent profile --"
+        selectProfileOpt: "-- Select a recent profile --",
+        codeSentMsg: "A code has been sent to your email address.",
+        verifCodeLabel: "Verification Code",
+        verifyBtn: "Verify",
+        changeEmailBtn: "Change Email",
+        verifyError: "Invalid or expired verification code."
     }
 };
 

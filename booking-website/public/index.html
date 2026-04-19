@@ -145,23 +145,36 @@
     </div>
 
     <!-- Guest Login Modal -->
-    <div id="guest-login-modal" class="custom-modal">
+    <div id="guest-login-modal" class="custom-modal" style="display: none;">
         <div class="modal-content shadow text-center position-relative">
             <button id="btn-back-from-guest-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
             <span class="close-btn" id="close-guest-login" style="right: 15px; top: 10px;">&times;</span>
             <img id="login-teacher-img" src="" class="rounded-circle mx-auto mt-4 shadow-sm" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #198754; display: none;">
             <h2 class="fw-bold mb-4 mt-3" data-i18n="guestLoginTitle">Connexion Invité</h2>
-            <div class="mb-4 text-start">
-                <label class="form-label fw-bold" data-i18n="guestIdLabel">Email</label>
-                <input type="email" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email...">
-                <small class="text-muted mt-1 d-block" data-i18n="emailImportant">Votre email est indispensable pour vous envoyer la confirmation de votre réservation.</small>
+            
+            <div id="guest-login-step-1">
+                <div class="mb-4 text-start">
+                    <label class="form-label fw-bold" data-i18n="guestIdLabel">Email</label>
+                    <input type="email" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email...">
+                    <small class="text-muted mt-1 d-block" data-i18n="emailImportant">Votre email est indispensable pour vous envoyer la confirmation de votre réservation.</small>
+                </div>
+                <button id="btn-guest-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="continueBtn">Continuer</button>
             </div>
-            <button id="btn-guest-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="continueBtn">Continuer</button>
+
+            <div id="guest-login-step-2" style="display: none;">
+                <p class="text-muted mb-3" data-i18n="codeSentMsg">Un code a été envoyé à votre adresse email.</p>
+                <div class="mb-4 text-start">
+                    <label class="form-label fw-bold" data-i18n="verifCodeLabel">Code de vérification</label>
+                    <input type="text" id="guest-code-input" class="form-control text-center fw-bold fs-4" placeholder="------" maxlength="6">
+                </div>
+                <button id="btn-verify-code" class="btn btn-primary w-100 py-2 fw-bold" data-i18n="verifyBtn">Vérifier</button>
+                <button id="btn-back-to-email" class="btn btn-link w-100 mt-2 text-muted text-decoration-none" data-i18n="changeEmailBtn">Changer d'email</button>
+            </div>
         </div>
     </div>
 
     <!-- Admin Login Modal -->
-    <div id="login-modal" class="custom-modal">
+    <div id="login-modal" class="custom-modal" style="display: none;">
         <div class="modal-content shadow position-relative">
             <button id="btn-back-from-admin-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
             <span class="close-btn" id="close-login" style="right: 15px; top: 10px;">&times;</span>
@@ -172,7 +185,12 @@
             </div>
             <div class="mb-4">
                 <label class="form-label fw-bold" data-i18n="adminPassLabel">Mot de passe</label>
-                <input type="password" id="admin-pass" class="form-control" data-i18n-placeholder="adminPassPlaceholder" placeholder="Entrez le mot de passe">
+                <div class="input-group">
+                    <input type="password" id="admin-pass" class="form-control" data-i18n-placeholder="adminPassPlaceholder" placeholder="Entrez le mot de passe">
+                    <button class="btn btn-outline-secondary" type="button" id="toggle-admin-pass">
+                        <i class="bi bi-eye" id="toggle-admin-pass-icon"></i>
+                    </button>
+                </div>
             </div>
             <button id="btn-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="loginBtn">Se connecter</button>
         </div>
@@ -377,7 +395,7 @@
         </div>
     </div>
 
-    <div id="booking-modal" class="custom-modal">
+    <div id="booking-modal" class="custom-modal" style="display: none;">
         <div class="modal-content shadow">
             <span class="close-btn" id="close-modal">&times;</span>
             <h3 class="fw-bold mb-3" data-i18n="resReq">Demande de réservation</h3>
@@ -434,7 +452,7 @@
     </div>
 
     <!-- Edit Reservation Modal -->
-    <div id="edit-modal" class="custom-modal" style="z-index: 1000;">
+    <div id="edit-modal" class="custom-modal" style="z-index: 1000; display: none;">
         <div class="modal-content shadow text-start" style="max-width: 450px;">
             <span class="close-btn" id="close-edit-modal">&times;</span>
             <h3 class="fw-bold mb-3" data-i18n="editDetails">Modifier les détails</h3>
@@ -481,7 +499,7 @@
     </div>
 
     <!-- Block Time Modal -->
-    <div id="block-modal" class="custom-modal" style="z-index: 1000;">
+    <div id="block-modal" class="custom-modal" style="z-index: 1000; display: none;">
         <div class="modal-content shadow text-start" style="max-width: 450px;">
             <span class="close-btn" id="close-block-modal">&times;</span>
             <h3 class="fw-bold mb-3" id="block-modal-title" data-i18n="blockTimeVacation">Bloquer un créneau / Vacances</h3>
@@ -560,7 +578,7 @@
     </div>
 
     <!-- Generic Custom Dialog Modal -->
-    <div id="custom-dialog-modal" class="custom-modal" style="z-index: 9999;">
+    <div id="custom-dialog-modal" class="custom-modal" style="z-index: 9999; display: none;">
         <div class="modal-content shadow text-center" style="max-width: 400px; padding: 25px;">
             <h4 id="dialog-title" class="fw-bold mb-3 text-dark"></h4>
             <p id="dialog-message" class="text-muted mb-4"></p>

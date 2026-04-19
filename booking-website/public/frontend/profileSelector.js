@@ -156,19 +156,19 @@ window.updateUIWithProfile = function(profileName) {
     console.log('[OK] [PROFILE] UI updated with profile:', profileName);
 }
 
-// Hide profile modal and show role modal
+// Hide profile modal and show guest login directly
 function hideProfileModal() {
     const profileModal = document.getElementById('profile-modal');
-    const roleModal = document.getElementById('role-modal');
+    const guestLoginModal = document.getElementById('guest-login-modal');
     
     if (profileModal) {
         profileModal.style.display = 'none';
         console.log('[OK] [PROFILE] Profile modal hidden');
     }
     
-    if (roleModal) {
-        roleModal.style.display = 'flex';
-        console.log('[OK] [PROFILE] Role modal shown');
+    if (guestLoginModal) {
+        guestLoginModal.style.display = 'flex';
+        console.log('[OK] [PROFILE] Guest login modal shown');
     }
 }
 

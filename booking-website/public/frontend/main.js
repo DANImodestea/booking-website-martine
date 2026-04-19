@@ -1,18 +1,22 @@
-document.addEventListener("DOMContentLoaded", () => {
-    // Global API base resolver and fetch interceptor for file/Live Server usage
-    window.getApiBase = function() {
-        return window.API_BASE 
-            || localStorage.getItem('apiBase') 
-            || ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3000' : '');
+// Global API base resolver and fetch interceptor
+window.getApiBase = function() {
+    // Force backend port 3000 for local development (handles localhost and local network IPs)
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '5000' || location.port === '5500') {
+        return location.protocol + '//' + location.hostname + ':3000';
+    }
+        // Production Backend URL (Same domain via Firebase Cloud Functions)
+        return window.API_BASE || '';
+};
+(function(origFetch){
+    window.fetch = function(url, opts) {
+        if (typeof url === 'string' && url.startsWith('/api/')) {
+            url = window.getApiBase() + url;
+        }
+        return origFetch(url, opts);
     };
-    (function(origFetch){
-        window.fetch = function(url, opts) {
-            if (typeof url === 'string' && url.startsWith('/api/')) {
-                url = window.getApiBase() + url;
-            }
-            return origFetch(url, opts);
-        };
-    })(window.fetch);
+})(window.fetch);
+
+document.addEventListener("DOMContentLoaded", () => {
 
     window.fetchReservations = async function() {
         try {

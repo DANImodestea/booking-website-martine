@@ -376,7 +376,7 @@ window.loadAdminDashboard = function() {
     // Handle Add Link
     document.querySelectorAll('.add-link-btn').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const email = e.target.getAttribute('data-email');
+        const email = e.currentTarget.getAttribute('data-email');
         document.getElementById('link-student-email').value = email;
         document.getElementById('edit-link-index').value = '';
         document.getElementById('link-name').value = '';
@@ -387,18 +387,18 @@ window.loadAdminDashboard = function() {
     // Handle Edit Link
     document.querySelectorAll('.edit-link-btn').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        document.getElementById('link-student-email').value = e.currentTarget.getAttribute('data-email');
-        document.getElementById('edit-link-index').value = e.currentTarget.getAttribute('data-link-index');
-        document.getElementById('link-name').value = e.currentTarget.getAttribute('data-link-name');
-        document.getElementById('link-url').value = e.currentTarget.getAttribute('data-link-url');
+        document.getElementById('link-student-email').value = e.currentTarget.getAttribute('data-email') || '';
+        document.getElementById('edit-link-index').value = e.currentTarget.getAttribute('data-link-index') || '';
+        document.getElementById('link-name').value = e.currentTarget.getAttribute('data-link-name') || '';
+        document.getElementById('link-url').value = e.currentTarget.getAttribute('data-link-url') || '';
         document.getElementById('add-link-modal').style.display = 'flex';
     }));
 
     // Handle Remove Link
     document.querySelectorAll('.remove-link-btn').forEach(btn => btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const email = e.target.getAttribute('data-email');
-        const linkIndex = parseInt(e.target.getAttribute('data-link-index'), 10);
+        const email = e.currentTarget.getAttribute('data-email');
+        const linkIndex = parseInt(e.currentTarget.getAttribute('data-link-index'), 10);
         const reservations = JSON.parse(localStorage.getItem('reservations')) || [];
         const targetRes = reservations.find(r => r.email === email);
         if (!targetRes || !targetRes.studentLinks) return;

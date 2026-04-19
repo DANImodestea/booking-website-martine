@@ -24,15 +24,33 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('close-guest-login')?.addEventListener('click', () => {
         guestLoginModal.style.display = 'none';
         document.getElementById('profile-modal').style.display = 'flex';
+        document.getElementById('guest-login-step-2').style.display = 'none';
+        document.getElementById('guest-login-step-1').style.display = 'block';
+        document.getElementById('guest-code-input').value = '';
     });
     
     document.getElementById('btn-back-from-guest-login')?.addEventListener('click', () => {
         guestLoginModal.style.display = 'none';
         document.getElementById('profile-modal').style.display = 'flex';
         document.getElementById('guest-id-input').value = '';
+        document.getElementById('guest-code-input').value = '';
+        document.getElementById('guest-login-step-2').style.display = 'none';
+        document.getElementById('guest-login-step-1').style.display = 'block';
     });
 
-    document.getElementById('btn-guest-login')?.addEventListener('click', () => {
+    function loginGuest(email) {
+        localStorage.setItem('currentUser', email);
+        guestLoginModal.style.display = 'none';
+        document.getElementById('guest-login-step-2').style.display = 'none';
+        document.getElementById('guest-login-step-1').style.display = 'block';
+        document.getElementById('guest-code-input').value = '';
+        
+        guestView.style.display = 'block';
+        if (window.guestSchedule) window.guestSchedule.refresh();
+        if (window.loadGuestDashboard) window.loadGuestDashboard();
+    }
+
+    document.getElementById('btn-guest-login')?.addEventListener('click', async () => {
         const guestId = document.getElementById('guest-id-input').value.trim();
         if (!guestId) {
             window.showDialog({ 
@@ -53,11 +71,87 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         
-        localStorage.setItem('currentUser', guestId);
-        guestLoginModal.style.display = 'none';
-        guestView.style.display = 'block';
-        if (window.guestSchedule) window.guestSchedule.refresh();
-        if (window.loadGuestDashboard) window.loadGuestDashboard();
+        const btn = document.getElementById('btn-guest-login');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class="bi bi-hourglass-split"></i> ...`;
+        btn.disabled = true;
+
+        try {
+            const adminProfile = window.getSelectedProfile();
+            const response = await fetch('/api/auth/request-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: guestId, adminProfile })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Serveur injoignable (Erreur ${response.status}). Avez-vous redémarré le serveur backend ?`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.verified) {
+                loginGuest(guestId);
+            } else {
+                document.getElementById('guest-login-step-1').style.display = 'none';
+                document.getElementById('guest-login-step-2').style.display = 'block';
+            }
+        } catch (e) {
+            console.error(e);
+            window.showDialog({ title: 'Erreur', message: e.message || 'Serveur indisponible.', buttons: [{ text: window.t('ok'), class: 'btn-danger w-100' }] });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('btn-verify-code')?.addEventListener('click', async () => {
+        const email = document.getElementById('guest-id-input').value.trim();
+        const code = document.getElementById('guest-code-input').value.trim();
+        const adminProfile = window.getSelectedProfile();
+        if (!code) return;
+        
+        const btn = document.getElementById('btn-verify-code');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class="bi bi-hourglass-split"></i> ...`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/auth/verify-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, adminProfile, code })
+            });
+            
+            if (!res.ok) {
+                let errorMsg = `Erreur ${res.status}`;
+                try {
+                    const errData = await res.json();
+                    errorMsg = errData.error || errorMsg;
+                } catch(e) {}
+                throw new Error(errorMsg);
+            }
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                loginGuest(email);
+            } else {
+                window.showDialog({ title: 'Erreur', message: data.error || window.t('verifyError'), buttons: [{ text: window.t('ok'), class: 'btn-danger w-100' }] });
+            }
+        } catch (e) {
+            console.error(e);
+            window.showDialog({ title: 'Erreur', message: e.message || window.t('verifyError'), buttons: [{ text: window.t('ok'), class: 'btn-danger w-100' }] });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('btn-back-to-email')?.addEventListener('click', () => {
+        document.getElementById('guest-login-step-2').style.display = 'none';
+        document.getElementById('guest-login-step-1').style.display = 'block';
+        document.getElementById('guest-code-input').value = '';
     });
 
     document.getElementById('btn-guest-logout')?.addEventListener('click', () => {
@@ -79,6 +173,20 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('profile-modal').style.display = 'flex';
         document.getElementById('admin-user').value = '';
         document.getElementById('admin-pass').value = '';
+    });
+    
+    document.getElementById('toggle-admin-pass')?.addEventListener('click', function() {
+        const passInput = document.getElementById('admin-pass');
+        const icon = document.getElementById('toggle-admin-pass-icon');
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            passInput.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
     });
 
     document.getElementById('btn-login')?.addEventListener('click', async () => {
