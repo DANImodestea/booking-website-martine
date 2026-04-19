@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Class</title>
+    <!-- Add Bootstrap 5 for clean responsive layouts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="frontend/styles.css">
+    <style>
+        /* Print styling for CV Modals */
+        @media print {
+            body > *:not(.custom-modal) { display: none !important; }
+            .custom-modal:not([style*="display: flex"]):not([style*="display: block"]):not([style*="opacity: 1"]) { display: none !important; }
+            .custom-modal { position: absolute !important; left: 0 !important; top: 0 !important; background: none !important; padding: 0 !important; display: block !important; height: auto !important; overflow: visible !important; align-items: flex-start !important; }
+            .modal-content { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; max-height: none !important; height: auto !important; }
+            .no-print { display: none !important; }
+            .modal-content .cv-body { font-size: 12px; }
+        }
+
+        @keyframes pulse-martine {
+            0% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 15px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+        @keyframes pulse-dani {
+            0% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(245, 87, 108, 0.7); }
+            70% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 15px rgba(245, 87, 108, 0); }
+            100% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(245, 87, 108, 0); }
+        }
+        .profile-card .btn-outline-primary, .profile-card .btn-outline-danger {
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        .profile-card:hover .btn-outline-primary, .profile-card:hover .btn-outline-danger {
+            opacity: 1;
+        }
+        
+        /* Profile Selector & Navbar Image Hover Effects */
+        .profile-card .profile-circle {
+            filter: blur(5px) grayscale(30%);
+            opacity: 0.85;
+            transition: filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+        }
+        .profile-card {
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .profile-card:hover {
+            transform: scale(1.08);
+        }
+        .profile-card:hover .profile-circle {
+            filter: blur(0) grayscale(0%);
+            opacity: 1;
+        }
+        .nav-profile-img {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .nav-profile-img:hover {
+            transform: scale(1.15) rotate(-4deg);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.25) !important;
+        }
+
+        /* Modern Navbar Styling */
+        .nav-contact-pill {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .nav-contact-pill:hover, a.nav-contact-pill:hover {
+            background-color: #ffffff;
+            transform: translateY(-2px);
+            border-color: #dee2e6;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        .contact-icon { flex-shrink: 0; }
+
+        .context-menu-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Enhanced Professional Highlighting & Backgrounds */
+        .highlight-card {
+            border: 2px solid #ffc107 !important;
+            box-shadow: 0 0 14px rgba(255, 193, 7, 0.45) !important;
+            transform: scale(1.02);
+            z-index: 10;
+            position: relative;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .status-pending-bg { background-color: #fffdf5 !important; border-left: 4px solid #ffc107 !important; }
+        .status-approved-bg { background-color: #f4fbf5 !important; border-left: 4px solid #198754 !important; }
+        .status-rejected-bg { background-color: #fdf5f5 !important; border-left: 4px solid #dc3545 !important; }
+        .status-blocked-bg { background-color: #f8f9fa !important; border-left: 4px solid #6c757d !important; }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Context Menu -->
+    <div id="admin-context-menu" class="bg-white shadow-lg border rounded no-print" style="display: none; position: absolute; z-index: 1060; min-width: 220px; overflow: hidden;">
+        <button class="btn btn-light text-start w-100 border-bottom rounded-0 py-2 context-menu-item fw-bold" id="context-btn-done"><i class="bi bi-check-circle text-success me-2"></i> <span data-i18n="markDone">Cours effectué</span></button>
+        <button class="btn btn-light text-start w-100 border-bottom rounded-0 py-2 context-menu-item fw-bold" id="context-btn-not-done"><i class="bi bi-x-circle text-warning me-2"></i> <span data-i18n="markNotDone">Cours non effectué</span></button>
+        <button class="btn btn-light text-start text-danger w-100 rounded-0 py-2 context-menu-item fw-bold" id="context-btn-delete"><i class="bi bi-trash text-danger me-2"></i> <span data-i18n="eraseCompletely">Supprimer définitivement</span></button>
+    </div>
+
+    <!-- Profile Selection Modal (Appears First) -->
+    <div id="profile-modal" class="custom-modal" style="display: flex;">
+        <div class="modal-content shadow text-center position-relative">
+            
+            <!-- Language Selector (Top Right) -->
+            <div class="position-absolute top-0 end-0 m-3 text-end" style="z-index: 1055;">
+                <div class="btn-group shadow-sm bg-white rounded-pill" role="group">
+                    <button class="btn btn-sm px-3 rounded-start-pill lang-btn-toggle" data-lang="fr">🇫🇷</button>
+                    <button class="btn btn-sm px-3 rounded-end-pill lang-btn-toggle" data-lang="en">🇬🇧</button>
+                </div>
+            </div>
+            
+            <h2 class="fw-bold mt-5 mb-3" id="profile-title" data-i18n="profileTitle">Choisissez votre coach</h2>
+            <p class="text-muted mb-5" id="profile-subtitle" data-i18n="profileSubtitle">Sélectionnez le coach avec lequel vous souhaitez travailler :</p>
+            
+            <div class="d-flex justify-content-center gap-5 mt-4 flex-wrap">
+                <!-- Martine Profile -->
+                <div class="profile-card text-center cursor-pointer" id="profile-martine" style="width: 150px; cursor: pointer;">
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: center; background-repeat: no-repeat; background-image: url('img/Martine.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #667eea; transition: transform 0.3s ease, filter 0.3s ease; animation: pulse-martine 1s infinite;"></div>
+                    <h3 class="fw-bold mt-3" style="color: #333;">Martine</h3>
+                    <p class="text-muted small" data-i18n="martineDesc">Enseignante d'anglais</p>
+                    <button id="btn-martine-cv" class="btn btn-sm btn-outline-secondary mt-2 w-100" data-i18n="learnMore">En savoir plus</button>
+                </div>
+
+                <!-- Dani Profile -->
+                <div class="profile-card text-center cursor-pointer" id="profile-dani" style="width: 150px; cursor: pointer;">
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: top center; background-repeat: no-repeat; background-image: url('img/Dani.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #f5576c; transition: transform 0.3s ease, filter 0.3s ease; animation: pulse-dani 1s infinite;"></div>
+                    <h3 class="fw-bold mt-3" style="color: #333;">Dani</h3>
+                    <p class="text-muted small" data-i18n="daniDesc">Enseignant d'anglais</p>
+                    <button id="btn-dani-cv" class="btn btn-sm btn-outline-secondary mt-2 w-100" data-i18n="learnMore">En savoir plus</button>
+                </div>
+            </div>
+
+            <!-- Admin Login Button (Middle Bottom) -->
+            <div class="mt-4 pt-4 border-top">
+                <button id="btn-admin-from-profile" class="btn btn-outline-danger fw-bold px-4 rounded-pill">Admin Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guest Login Modal -->
+    <div id="guest-login-modal" class="custom-modal" style="display: none;">
+        <div class="modal-content shadow text-center position-relative">
+            <button id="btn-back-from-guest-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
+            <span class="close-btn" id="close-guest-login" style="right: 15px; top: 10px;">&times;</span>
+            <img id="login-teacher-img" src="" class="rounded-circle mx-auto mt-4 shadow-sm" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #198754; display: none;">
+            <h2 class="fw-bold mb-4 mt-3" data-i18n="guestLoginTitle">Connexion Invité</h2>
+            
+            <div id="guest-login-step-1">
+                <div class="mb-4 text-start">
+                    <label class="form-label fw-bold" data-i18n="guestIdLabel">Email</label>
+                    <input type="email" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email...">
+                    <small class="text-muted mt-1 d-block" data-i18n="emailImportant">Votre email est indispensable pour vous envoyer la confirmation de votre réservation.</small>
+                </div>
+                <button id="btn-guest-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="continueBtn">Continuer</button>
+            </div>
+
+            <div id="guest-login-step-2" style="display: none;">
+                <p class="text-muted mb-3" data-i18n="codeSentMsg">Un code a été envoyé à votre adresse email.</p>
+                <div class="mb-4 text-start">
+                    <label class="form-label fw-bold" data-i18n="verifCodeLabel">Code de vérification</label>
+                    <input type="text" id="guest-code-input" class="form-control text-center fw-bold fs-4" placeholder="------" maxlength="6">
+                </div>
+                <button id="btn-verify-code" class="btn btn-primary w-100 py-2 fw-bold" data-i18n="verifyBtn">Vérifier</button>
+                <button id="btn-back-to-email" class="btn btn-link w-100 mt-2 text-muted text-decoration-none" data-i18n="changeEmailBtn">Changer d'email</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="login-modal" class="custom-modal" style="display: none;">
+        <div class="modal-content shadow position-relative">
+            <button id="btn-back-from-admin-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
+            <span class="close-btn" id="close-login" style="right: 15px; top: 10px;">&times;</span>
+            <h2 class="fw-bold mb-4 mt-5 text-center" data-i18n="adminLoginTitle">Connexion Admin</h2>
+            <div class="mb-3">
+                <label class="form-label fw-bold" data-i18n="adminUserLabel">Nom d'utilisateur</label>
+                <input type="text" id="admin-user" class="form-control" data-i18n-placeholder="adminUserPlaceholder" placeholder="Entrez le nom d'utilisateur">
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold" data-i18n="adminPassLabel">Mot de passe</label>
+                <div class="input-group">
+                    <input type="password" id="admin-pass" class="form-control" data-i18n-placeholder="adminPassPlaceholder" placeholder="Entrez le mot de passe">
+                    <button class="btn btn-outline-secondary" type="button" id="toggle-admin-pass">
+                        <i class="bi bi-eye" id="toggle-admin-pass-icon"></i>
+                    </button>
+                </div>
+            </div>
+            <button id="btn-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="loginBtn">Se connecter</button>
+        </div>
+    </div>
+
+    <!-- Guest Booking Interface -->
+    <div id="guest-view" class="container-fluid py-4" style="display: none;">
+        <!-- Guest Navbar -->
+        <nav class="navbar navbar-expand-xl navbar-light bg-white shadow-sm mb-5 rounded-4 px-4 py-3 border-0">
+            <div class="container-fluid">
+                <span class="navbar-brand text-dark mb-0 d-flex align-items-center">
+                    <img id="guest-nav-img" src="img/Martine.jpeg" alt="Profile" class="rounded-circle me-3 shadow-sm nav-profile-img" style="width: 65px; height: 65px; object-fit: cover; object-position: top; border: 3px solid #fff; outline: 2px solid #198754;">
+                    <div class="d-flex flex-column">
+                        <span id="guest-nav-name" class="fs-4 fw-bold lh-1 mb-1">Martine Juillan</span>
+                        <span class="text-success fw-bold" style="font-size: 0.95rem;" data-i18n="scheduleTitle">Planifier un cours</span>
+                    </div>
+                </span>
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#guestNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="guestNavbar">
+                    <ul class="navbar-nav me-auto mb-2 mb-xl-0 align-items-xl-center gap-2 ms-xl-4">
+                        <li class="nav-item">
+                            <a id="nav-linkedin" href="https://www.linkedin.com/in/martine-juillan/" target="_blank" class="nav-contact-pill d-flex align-items-center gap-3 text-decoration-none px-3 py-2 rounded-pill">
+                                    <span class="contact-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">LI</span>
+                                <div class="d-flex flex-column justify-content-center text-start">
+                                    <span class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;" data-i18n="navLinkedIn">LinkedIn</span>
+                                    <small class="text-muted lh-1" style="font-size: 0.8rem;" data-i18n="navLinkedInDesc">Voir mon profil</small>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="nav-email-link" href="mailto:mjuillan38@gmail.com" class="nav-contact-pill d-flex align-items-center gap-3 text-decoration-none px-3 py-2 rounded-pill">
+                                    <span class="contact-icon bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">@</span>
+                                <div class="d-flex flex-column justify-content-center text-start">
+                                    <span class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;" data-i18n="navEmail">Me contacter par Email</span>
+                                    <small id="nav-email-text" class="text-muted lh-1" style="font-size: 0.8rem;">mjuillan38@gmail.com</small>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="nav-phone-link" href="tel:+33676100223" class="nav-contact-pill d-flex align-items-center gap-3 text-decoration-none px-3 py-2 rounded-pill">
+                                    <span class="contact-icon bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">TEL</span>
+                                <div class="d-flex flex-column justify-content-center text-start">
+                                    <span id="nav-phone-text" class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;">06 76 10 02 23</span>
+                                <small id="nav-avail-text" class="text-muted lh-1" style="font-size: 0.8rem;" data-i18n="martineAvailability">Disponible de 8h à 19h pour échanger</small>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="d-flex justify-content-start mt-3 mt-xl-0 ms-xl-3 ps-3 ps-xl-0">
+                        <button id="btn-guest-logout" class="btn btn-light rounded-pill border shadow-sm fw-bold px-4 py-2 text-danger" data-i18n="logoutBtn">Déconnexion</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="d-flex flex-column flex-xl-row w-100 align-items-start" style="gap: 1.5rem;">
+            <!-- Left: Sidebar Actions & Reservations -->
+            <div id="guest-left-panel" style="flex: 0 0 35%; min-width: 300px; position: sticky; top: 20px;">
+                <div class="card shadow-sm border-0 p-4 mb-4 text-center bg-white">
+                    <h4 class="fw-bold mb-3" data-i18n="readyToBook">Prêt à réserver ?</h4>
+                    <p class="text-muted small mb-3" data-i18n="selectSlotsText">Sélectionnez un ou plusieurs créneaux verts sur le calendrier, puis cliquez sur le bouton ci-dessous.</p>
+                    <button class="btn btn-secondary btn-lg w-100 fw-bold shadow-sm book-action-btn" disabled data-i18n="bookBtnDefault">Sélectionnez un créneau</button>
+                </div>
+
+                <div id="guest-dashboard" style="display:none;">
+                    <!-- Guest Links Section -->
+                    <div id="guest-links-section" class="mb-4" style="display:none;">
+                        <h4 class="fw-bold text-primary border-bottom pb-2 mb-3 d-flex align-items-center gap-2">
+                            <span data-i18n="myLinks">Mes Liens</span>
+                        </h4>
+                        <div id="guest-links-container" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <h4 class="fw-bold text-success border-bottom pb-2 mb-3 d-flex align-items-center gap-2">
+                        <span data-i18n="myRes">Mes Réservations</span>
+                        <span id="guest-res-count" class="badge bg-success rounded-pill" style="font-size: 0.9rem;">0</span>
+                    </h4>
+                    <div id="guest-reservations-list" class="row g-3 pe-1" style="max-height: calc(100vh - 320px); overflow-y: auto; overflow-x: hidden;"></div>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div id="guest-resizer" class="d-none d-xl-flex align-items-center justify-content-center" style="align-self: stretch;">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <!-- Right: Schedule Map -->
+            <div id="guest-right-panel" class="flex-grow-1" style="min-width: 400px; width: 0;">
+                <div class="week-nav d-flex justify-content-between align-items-center mb-4">
+                    <button id="prev-week-btn" class="btn btn-outline-success fw-bold" data-i18n="prevWeek">&lt; Précédent</button>
+                    <div class="d-flex flex-column flex-sm-row align-items-center gap-2">
+                        <h3 id="week-display" class="mb-0 fw-bold text-center"></h3>
+                        <button id="today-btn" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" data-i18n="todayBtn" style="display: none;">Aujourd'hui</button>
+                    </div>
+                    <button id="next-week-btn" class="btn btn-outline-success fw-bold" data-i18n="nextWeek">Suivant &gt;</button>
+                </div>
+                <div class="card shadow-sm border-0 p-3 mb-4 h-100">
+                    <div id="schedule-grid" class="schedule-grid"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Action Button for Mobile -->
+        <div class="position-fixed bottom-0 end-0 p-3 d-xl-none" style="z-index: 1050; pointer-events: none;">
+            <button class="btn btn-secondary btn-lg shadow-lg rounded-pill book-action-btn px-4" disabled style="pointer-events: auto;" data-i18n="bookBtnDefault">Sélectionnez un créneau</button>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Interface -->
+    <div id="admin-view" class="container-fluid py-4" style="display: none;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 bg-white p-4 rounded-4 shadow-sm border-0 gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <img id="admin-nav-img" src="img/Martine.jpeg" alt="Profile" class="rounded-circle shadow-sm nav-profile-img" style="width: 65px; height: 65px; object-fit: cover; object-position: top; border: 3px solid #fff; outline: 2px solid #0dcaf0;">
+                <div>
+                    <h1 class="h3 mb-1 fw-bold text-dark" id="admin-title">Tableau de bord Admin</h1>
+                    <p class="text-muted mb-0" data-i18n="manageClient">Gérer les réservations clients</p>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button id="btn-change-profile" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-info"><span data-i18n="changeProfileBtn">Changer de profil</span></button>
+                <button id="btn-client-db" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-primary"><i class="bi bi-people me-1"></i> <span data-i18n="clientDbBtn">Base de données Clients</span></button>
+                <button id="btn-block-time" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-secondary"><span data-i18n="blockTimeBtn">Bloquer un créneau</span></button>
+                <button id="btn-logout" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-danger"><i class="bi bi-box-arrow-right me-1"></i> <span data-i18n="logoutBtn">Déconnexion</span></button>
+            </div>
+        </div>
+        
+        <div class="d-flex flex-column flex-xl-row w-100" style="gap: 1.5rem;">
+            <!-- Left panel: Dashboard Requests -->
+            <div id="admin-left-panel" class="admin-left-wrap" style="flex: 0 0 45%; min-width: 300px;">
+                <div class="bg-white p-3 rounded shadow-sm border h-100">
+                    <h4 class="mb-3 fw-bold border-bottom pb-2" data-i18n="pendingActive">Flux en attente & actifs</h4>
+                    
+                    <div class="mb-3">
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check feed-type-toggle" name="feed-type" id="feed-temp" value="one-time" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="feed-temp" data-i18n="tempOneTime">Temporaire (Une fois)</label>
+                            <input type="radio" class="btn-check feed-type-toggle" name="feed-type" id="feed-perm" value="weekly" autocomplete="off">
+                            <label class="btn btn-outline-success" for="feed-perm" data-i18n="permWeekly">Permanent (Hebdomadaire)</label>
+                        </div>
+                        <div class="p-3 bg-light rounded border d-flex flex-wrap gap-3 align-items-center">
+                            <input type="text" id="admin-search" class="form-control form-control-sm shadow-sm border-success" data-i18n-placeholder="searchPlaceholder" placeholder="Rechercher nom, email..." style="max-width: 250px;">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="admin-current-week-filter" checked>
+                                <label class="form-check-label small" for="admin-current-week-filter" data-i18n="showCurrent">Afficher uniquement la semaine en cours</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Feed Selector (Visible only when container is narrow) -->
+                    <div class="admin-feeds-mobile-nav mb-3">
+                        <select id="admin-feed-selector" class="form-select border-success shadow-sm fw-bold">
+                            <option value="col-all" data-i18n="viewAll">Voir toutes les demandes</option>
+                            <option value="col-pending" data-i18n="viewPending">Voir les demandes en attente</option>
+                            <option value="col-accepted" data-i18n="viewAccepted">Voir les demandes acceptées</option>
+                            <option value="col-rejected" data-i18n="viewRejected">Voir les demandes rejetées</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex flex-wrap mt-3 admin-feeds-container">
+                        <div id="wrap-col-all" class="admin-feed-col active-feed border-end pe-2">
+                            <h5 class="fw-bold text-info text-center border-bottom pb-2" data-i18n="allReq">Toutes les demandes</h5>
+                            <div id="col-all" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                        <div id="wrap-col-pending" class="admin-feed-col border-end pe-2">
+                            <h5 class="fw-bold text-warning text-center border-bottom pb-2" data-i18n="pending">En attente</h5>
+                            <div id="col-pending" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                        <div id="wrap-col-accepted" class="admin-feed-col border-end px-2">
+                            <h5 class="fw-bold text-success text-center border-bottom pb-2" data-i18n="accepted">Acceptées</h5>
+                            <div id="col-accepted" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                        <div id="wrap-col-rejected" class="admin-feed-col ps-2">
+                            <h5 class="fw-bold text-danger text-center border-bottom pb-2" data-i18n="rejected">Rejetées</h5>
+                            <div id="col-rejected" style="max-height: 75vh; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div id="admin-resizer" class="d-none d-xl-flex align-items-center justify-content-center">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <!-- Right panel: Schedule Map -->
+            <div id="admin-right-panel" class="flex-grow-1" style="min-width: 400px; width: 0;">
+                <div class="bg-white p-3 rounded shadow-sm border h-100">
+                    <h4 class="mb-4 fw-bold border-bottom pb-2" data-i18n="availMap">Carte des disponibilités</h4>
+                    <div class="week-nav d-flex justify-content-between align-items-center mb-3">
+                        <button id="admin-prev-week-btn" class="btn btn-outline-success btn-sm fw-bold" data-i18n="prevWeekAdmin">&lt; Semaine Précédente</button>
+                        <div class="d-flex flex-column flex-sm-row align-items-center gap-2">
+                            <h5 id="admin-week-display" class="mb-0 fw-bold text-center"></h5>
+                            <button id="admin-today-btn" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" data-i18n="todayBtn" style="display: none;">Aujourd'hui</button>
+                        </div>
+                        <button id="admin-next-week-btn" class="btn btn-outline-success btn-sm fw-bold" data-i18n="nextWeekAdmin">Semaine Suivante &gt;</button>
+                    </div>
+                    <div id="admin-schedule-grid" class="schedule-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-modal" class="custom-modal" style="display: none;">
+        <div class="modal-content shadow">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h3 class="fw-bold mb-3" data-i18n="resReq">Demande de réservation</h3>
+            <div id="selected-time-display" class="alert alert-success py-2 mb-4"></div>
+            
+            <form id="booking-form">
+                <div class="mb-3">
+                    <label class="form-label fw-bold" data-i18n="resType">Type de réservation</label>
+                    <div style="display: flex; gap: 15px;">
+                        <label style="font-weight: normal;"><input type="radio" name="recurring" value="one-time" checked> <span data-i18n="oneTime">Une fois</span></label>
+                        <label style="font-weight: normal;"><input type="radio" name="recurring" value="weekly"> <span data-i18n="weekly">Hebdomadaire</span></label>
+                    </div>
+                </div>
+                <div id="weeks-group" class="mb-3" style="display: none;">
+                    <label for="num-weeks" class="form-label fw-bold" data-i18n="howManyWeeks">Pour combien de semaines ? *</label>
+                    <select id="num-weeks" class="form-select">
+                        <option value="1" data-i18n="w1">1 Semaine</option>
+                        <option value="4" selected data-i18n="w4">4 Semaines (1 Mois)</option>
+                        <option value="8" data-i18n="w8">8 Semaines (2 Mois)</option>
+                        <option value="12" data-i18n="w12">12 Semaines (3 Mois)</option>
+                        <option value="24" data-i18n="w24">24 Semaines (6 Mois)</option>
+                    </select>
+                </div>
+                <div id="saved-profiles-group" class="mb-3 border-bottom pb-3" style="display: none;">
+                    <label class="form-label fw-bold text-primary" data-i18n="savedProfiles">Profils récents</label>
+                    <select id="saved-profiles-select" class="form-select border-primary shadow-sm bg-light"></select>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label for="fname" class="form-label fw-bold" data-i18n="fname">Prénom *</label>
+                        <input type="text" id="fname" class="form-control" required>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label for="lname" class="form-label fw-bold" data-i18n="lname">Nom *</label>
+                        <input type="text" id="lname" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold" data-i18n="email">Email *</label>
+                    <input type="email" id="email" class="form-control" required>
+                    <small class="text-muted mt-1 d-block" data-i18n="emailImportant">Votre email est indispensable pour vous envoyer la confirmation de votre réservation.</small>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label fw-bold" data-i18n="phone">Téléphone (Optionnel)</label>
+                    <input type="tel" id="phone" class="form-control">
+                </div>
+                <div class="mb-4">
+                    <label for="message" class="form-label fw-bold" data-i18n="msgOpt">Message (Optionnel)</label>
+                    <textarea id="message" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success w-100 fw-bold py-2" data-i18n="confirmReq">Confirmer la demande</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Reservation Modal -->
+    <div id="edit-modal" class="custom-modal" style="z-index: 1000; display: none;">
+        <div class="modal-content shadow text-start" style="max-width: 450px;">
+            <span class="close-btn" id="close-edit-modal">&times;</span>
+            <h3 class="fw-bold mb-3" data-i18n="editDetails">Modifier les détails</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-index">
+                <label class="small fw-bold mb-1" data-i18n="clientInfo">Infos Client</label>
+                <div class="d-flex gap-2 mb-2">
+                    <input type="text" id="edit-fname" class="form-control form-control-sm" data-i18n-placeholder="fnamePlaceholder" placeholder="Prénom" required>
+                    <input type="text" id="edit-lname" class="form-control form-control-sm" data-i18n-placeholder="lnamePlaceholder" placeholder="Nom" required>
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <input type="email" id="edit-email" class="form-control form-control-sm" data-i18n-placeholder="emailPlaceholder" placeholder="Email" required>
+                    <input type="tel" id="edit-phone" class="form-control form-control-sm" data-i18n-placeholder="phonePlaceholder" placeholder="Téléphone">
+                </div>
+                <label class="small fw-bold mb-1" data-i18n="resType">Type de réservation</label>
+                <select id="edit-recurring" class="form-select form-select-sm mb-2">
+                    <option value="one-time" data-i18n="oneTime">Une fois</option>
+                    <option value="weekly" data-i18n="weekly">Hebdomadaire</option>
+                </select>
+                <div id="edit-enddate-group" style="display: none;" class="mb-3">
+                    <select id="edit-weeks" class="form-select form-select-sm mb-1">
+                        <option value="" data-i18n="extendWeeks">Prolonger de...</option>
+                        <option value="4" data-i18n="w4">4 Semaines (1 Mois)</option>
+                        <option value="8" data-i18n="w8">8 Semaines (2 Mois)</option>
+                        <option value="12" data-i18n="w12">12 Semaines (3 Mois)</option>
+                        <option value="24" data-i18n="w24">24 Semaines (6 Mois)</option>
+                    </select>
+                    <label class="small text-muted mb-0" data-i18n="untilDate">Jusqu'à la date :</label>
+                    <input type="date" id="edit-enddate" class="form-control form-control-sm">
+                </div>
+                <label class="small fw-bold mb-1" data-i18n="message">Message</label>
+                <textarea id="edit-message" class="form-control form-control-sm mb-2" rows="2" data-i18n-placeholder="message" placeholder="Message"></textarea>
+                <div id="edit-admin-note-group" class="mb-3">
+                    <label class="small fw-bold mb-1 text-warning" data-i18n="adminNote">Note Admin (Privée)</label>
+                    <textarea id="edit-adminnote" class="form-control form-control-sm border-warning" rows="2" data-i18n-placeholder="adminNote" placeholder="Note Admin (Privée)"></textarea>
+                </div>
+                <div id="edit-admin-reply-group" class="mb-3">
+                    <label class="small fw-bold mb-1 text-info" data-i18n="adminReply">Message pour le client</label>
+                    <textarea id="edit-adminreply" class="form-control form-control-sm border-info" rows="2" data-i18n-placeholder="adminReplyPlaceholder" placeholder="Ce message sera visible par le client..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2" data-i18n="saveChanges">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Block Time Modal -->
+    <div id="block-modal" class="custom-modal" style="z-index: 1000; display: none;">
+        <div class="modal-content shadow text-start" style="max-width: 450px;">
+            <span class="close-btn" id="close-block-modal">&times;</span>
+            <h3 class="fw-bold mb-3" id="block-modal-title" data-i18n="blockTimeVacation">Bloquer un créneau / Vacances</h3>
+            <form id="block-form">
+                <input type="hidden" id="block-index">
+                <div class="mb-3">
+                    <label class="form-label fw-bold mb-1" data-i18n="blockType">Type de blocage</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="block-type" id="block-continuous" value="one-time" checked>
+                            <label class="form-check-label" for="block-continuous" data-i18n="blockContinuous">Période continue</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="block-type" id="block-daily" value="daily">
+                            <label class="form-check-label" for="block-daily" data-i18n="blockDaily">Heures récurrentes</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="startDate">Date de début</label>
+                        <input type="date" id="block-start" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="startTime">Heure de début (Opt)</label>
+                        <input type="time" id="block-start-time" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="endDate">Date de fin</label>
+                        <input type="date" id="block-end" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold mb-1" data-i18n="endTime">Heure de fin (Opt)</label>
+                        <input type="time" id="block-end-time" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold mb-1" data-i18n="reasonOpt">Raison (Optionnelle)</label>
+                    <input type="text" id="block-reason" class="form-control form-control-sm" data-i18n-placeholder="reasonPlaceholder" placeholder="ex: Vacances, Maintenance">
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary w-100 fw-bold py-2" id="block-submit-btn" data-i18n="blockDates">Bloquer les dates</button>
+                    <button type="button" class="btn btn-danger w-100 fw-bold py-2 d-none" id="block-delete-btn" data-i18n="eraseBlock">Effacer le blocage</button>
+                </div>
+                <div id="existing-blocks-section" class="mt-4 border-top pt-3" style="display: none;">
+                    <label class="form-label fw-bold mb-1" data-i18n="orModify">Ou modifier un blocage existant</label>
+                    <select id="existing-blocks-select" class="form-select form-select-sm">
+                        <option value="" data-i18n="selectBlock">Sélectionnez un blocage à modifier...</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Link Modal -->
+    <div id="add-link-modal" class="custom-modal" style="z-index: 1050; display: none;">
+        <div class="modal-content shadow text-start" style="max-width: 400px;">
+            <span class="close-btn" id="close-link-modal">&times;</span>
+            <h3 class="fw-bold mb-3">Ajouter un lien étudiant</h3>
+            <form id="add-link-form">
+                <input type="hidden" id="link-student-email">
+                <input type="hidden" id="edit-link-index">
+                <div class="mb-3">
+                    <label class="form-label fw-bold mb-1">Nom du lien</label>
+                    <input type="text" id="link-name" class="form-control form-control-sm" placeholder="ex: Google Docs, Lien d'appel..." required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold mb-1">URL</label>
+                    <input type="url" id="link-url" class="form-control form-control-sm" placeholder="https://..." required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Enregistrer le lien</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generic Custom Dialog Modal -->
+    <div id="custom-dialog-modal" class="custom-modal" style="z-index: 9999; display: none;">
+        <div class="modal-content shadow text-center" style="max-width: 400px; padding: 25px;">
+            <h4 id="dialog-title" class="fw-bold mb-3 text-dark"></h4>
+            <p id="dialog-message" class="text-muted mb-4"></p>
+            <div id="dialog-buttons" class="d-flex justify-content-center flex-column gap-2">
+                <!-- Buttons will be injected here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Client DB Modal -->
+    <div id="client-db-modal" class="custom-modal" style="display: none; z-index: 1050;">
+        <div class="modal-content shadow text-start" style="max-width: 900px; width: 95%; max-height: 90vh;">
+            <span class="close-btn" id="close-client-db-modal">&times;</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4">
+                <h3 class="fw-bold text-primary mb-0" data-i18n="clientDbTitle">Base de données Clients</h3>
+                <button id="btn-global-summary" class="btn btn-success btn-sm rounded-pill shadow-sm fw-bold px-3 mt-3 mt-sm-0"><i class="bi bi-file-earmark-bar-graph me-1"></i> <span data-i18n="globalSummaryBtn">Résumé Mensuel</span></button>
+            </div>
+            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Nom</th>
+                            <th data-i18n="contactInfo">Contact</th>
+                            <th class="text-center" data-i18n="totalRes">Réservations</th>
+                            <th data-i18n="lastRes">Dernière activité</th>
+                            <th class="text-center no-print">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-db-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Summary Modal -->
+    <div id="monthly-summary-modal" class="custom-modal" style="display: none; z-index: 1060;">
+        <div class="modal-content shadow text-start" style="max-width: 600px; width: 95%;">
+            <span class="close-btn no-print" id="close-summary-modal">&times;</span>
+            <h3 class="fw-bold mb-3 text-primary" id="summary-modal-title" data-i18n="monthlySummary">Résumé mensuel</h3>
+            <div class="mb-4 no-print d-flex gap-3 flex-wrap">
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold" data-i18n="selectMonth">Sélectionner un mois</label>
+                    <input type="month" id="summary-month-picker" class="form-control">
+                </div>
+            </div>
+            <div id="summary-results" class="mb-4" style="max-height: 40vh; overflow-y: auto;"></div>
+            <div class="d-flex gap-2 no-print">
+                <button type="button" class="btn btn-primary flex-grow-1 fw-bold py-2" id="download-summary-btn" onclick="window.print()"><i class="bi bi-printer me-2"></i> <span data-i18n="printPdf">Imprimer / PDF</span></button>
+                <button type="button" class="btn btn-success flex-grow-1 fw-bold py-2" id="email-summary-btn" style="display: none;"><i class="bi bi-envelope-paper me-2"></i> <span data-i18n="sendEmailBtn">Envoyer par Email</span></button>
+            </div>
+            <div class="d-flex gap-2 no-print mt-2">
+                <button type="button" class="btn btn-outline-success flex-grow-1 fw-bold py-2" id="csv-summary-btn"><i class="bi bi-file-earmark-spreadsheet me-2"></i> <span data-i18n="downloadCsv">Télécharger CSV</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CV Modals -->
+    <!-- Martine CV Modal -->
+    <div id="cv-modal-martine" class="custom-modal" style="display: none; z-index: 1050;">
+        <div class="modal-content shadow" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;" id="cv-content-martine">
+            <span class="close-btn" style="z-index: 1060;" onclick="document.getElementById('cv-modal-martine').style.display='none'">&times;</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-3 mb-4 no-print mt-2">
+                <h3 class="fw-bold mb-0">Profil & CV - Martine</h3>
+                <div class="mt-3 mt-sm-0 d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()"><i class="bi bi-printer me-1"></i> Imprimer</button>
+                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1dX0SJSEs0SP9DHlQ-SFY6fAJDfkcIaeF?usp=sharing"><i class="bi bi-share me-1"></i> Partager</button>
+                </div>
+            </div>
+            <div class="cv-body text-start">
+                <div class="text-center mb-4">
+                    <img src="img/Martine.jpeg" class="rounded-circle mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                    <h2 class="fw-bold text-primary">MARTINE JUILLAN</h2>
+                    <h5 class="text-muted">Enseignante d’anglais pour enfants et adultes dans le privé</h5>
+                    <p class="mt-3">Enseignante d’anglais passionnée, j'ai à cœur d'accompagner mes élèves dans leur apprentissage avec bienveillance et dynamisme. Forte de mes divers centres d'intérêt, notamment pour la nature, le sport et la littérature, j'aime créer des ponts entre l'anglais et vos passions. Mon objectif est de vous donner les outils linguistiques nécessaires pour concrétiser vos projets personnels et professionnels.</p>
+                </div>
+                
+                <div class="row mb-4 bg-light p-3 rounded">
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📧 mjuillan38@gmail.com</div>
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📞 06 76 10 02 23</div>
+                    <div class="col-md-4 text-center"><a href="https://www.linkedin.com/in/martine-juillan/" target="_blank" class="text-decoration-none fw-bold">LinkedIn</a></div>
+                </div>
+
+                <h4 class="fw-bold text-primary border-bottom pb-2">EXPÉRIENCES PROFESSIONNELLES</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - École de langues</strong></div>
+                        <p class="mb-0 small">➔ Cours en privé pour adultes, Cours en privé pour les 8 à 17 ans, et Cours en groupe pour les 3 à 16 ans.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - Université (Département Sciences et Technologies)</strong></div>
+                        <p class="mb-0 small">➔ Enseignement de l’anglais pour les étudiants en L1 de divers parcours scientifiques, axés sur la biologie, la technologie et la biochimie. Assurer le suivi des étudiants sur la plateforme Moodle.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Traductrice et Scénariste pédagogique - Start-up éducative</strong></div>
+                        <p class="mb-0 small">➔ L'élaboration de supports de formation efficaces à travers l'utilisation de personnages fictifs pour créer des scénarios qui peuvent être appliqués dans des situations réelles en anglais.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante de traduction - Université (Département Langues)</strong></div>
+                        <p class="mb-0 small">➔ Enseignement de traduction de presse, de l’anglais vers le français pour les étudiants en L2 Langues Étrangères Appliquées.</p></li>
+                </ul>
+
+                <h4 class="fw-bold text-primary border-bottom pb-2">FORMATION</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Certification d'enseignement de l'anglais (CELTA)</strong></div>
+                        <p class="mb-0 small">➔ Pour enseigner l’anglais, notamment aux adultes. L’équivalent du DAEFLE en anglais.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais - Université</strong></div>
+                        <p class="mb-0 small">➔ Développement des compétences en langues, cultures, traduction, analyse, et organisation, préparant à des carrières dans l’enseignement, le patrimoine, et la communication en anglais.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat STAV - Lycée Agricole</strong></div>
+                        <p class="mb-0 small">➔ Baccalauréat en Sciences, Technologies, de l’Agronomie et du Vivant.</p></li>
+                </ul>
+
+                <h4 class="fw-bold text-primary border-bottom pb-2">COMPÉTENCES</h4>
+                <div class="row">
+                    <div class="col-md-9">
+                        <p class="small mb-2"><strong>Logiciels :</strong> Excel, Word, Powerpoint, Canva, Lumin, Moodle.</p>
+                        <p class="small mb-2"><strong>Savoir être :</strong> Enthousiaste, rigoureuse et sens du travail d’équipe.</p>
+                        <p class="small mb-2"><strong>Savoir faire :</strong> Bonne aptitude rédactionnelle, organiser des documents, gérer un meeting.</p>
+                        <p class="small mb-2"><strong>Centres d’intérêts :</strong> natation, cyclisme, athlétisme, livres de fiction historique, plantes, thé.</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="small mb-1"><strong>Langues :</strong></p>
+                        <ul class="small ps-3">
+                            <li>Anglais (C2)</li><li>Français (C2)</li><li>Espagnol (A2)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4 pt-3 border-top no-print">
+                    <p class="small fw-bold">Portfolio / Plus d'infos :</p>
+                    <a href="https://drive.google.com/drive/folders/1dX0SJSEs0SP9DHlQ-SFY6fAJDfkcIaeF?usp=sharing" target="_blank" class="btn btn-outline-primary btn-sm">Scanner / Voir le Code QR (Google Drive)</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dani CV Modal -->
+    <div id="cv-modal-dani" class="custom-modal" style="display: none; z-index: 1050;">
+        <div class="modal-content shadow" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;" id="cv-content-dani">
+            <span class="close-btn" style="z-index: 1060;" onclick="document.getElementById('cv-modal-dani').style.display='none'">&times;</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-3 mb-4 no-print mt-2">
+                <h3 class="fw-bold mb-0">Profil & CV - Dani</h3>
+                <div class="mt-3 mt-sm-0 d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()"><i class="bi bi-printer me-1"></i> Imprimer</button>
+                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1O7YY3HdUIqphC8iI3-B6ROWp1ClH7SLh?usp=sharing"><i class="bi bi-share me-1"></i> Partager</button>
+                </div>
+            </div>
+            <div class="cv-body text-start">
+                <div class="text-center mb-4">
+                    <img src="img/Dani.jpeg" class="rounded-circle mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover; object-position: top;">
+                    <h2 class="fw-bold text-danger">MOHAMED ALI CHEMSEDDINE ROUABAH</h2>
+                    <h5 class="text-muted">Master 2 Géomatique et Analyse Spatiale (GEOMAS) - Enseignant d'Anglais</h5>
+                    <p class="mt-3">Professeur d'anglais passionné par la transmission des savoirs et doté d'un profil polyvalent mêlant langues, géographie et nouvelles technologies. J'aime m'appuyer sur ma diversité de compétences (sciences, programmation, culture) pour proposer un accompagnement sur mesure. Mon but est de vous aider à atteindre vos objectifs et à mener à bien vos projets personnels avec confiance.</p>
+                </div>
+                
+                <div class="row mb-4 bg-light p-3 rounded">
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📧 kendanine8@gmail.com</div>
+                    <div class="col-md-4 text-center mb-2 mb-md-0">📞 07 69 74 12 68</div>
+                    <div class="col-md-4 text-center"><a href="https://www.linkedin.com/in/mace-rouabah/" target="_blank" class="text-decoration-none fw-bold">LinkedIn</a></div>
+                </div>
+
+                <h4 class="fw-bold text-danger border-bottom pb-2">EXPÉRIENCE PROFESSIONNELLE</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 5 mois - Laboratoire de Recherche en Sciences Sociales</strong></div>
+                        <p class="mb-0 small">➔ Analyse cinématique des glaciers rocheux (LiDAR/IMCORR) et automatisation de traitements géospatiaux en Python et QGIS.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 3 mois - Digitalisation de Cartes Géomorphologiques (Institut d'Urbanisme et de Géographie)</strong></div>
+                        <p class="mb-0 small">➔ Digitalisation des cartes géomorphologiques de la région de la Haute Vallée de l’Ubaye en utilisant le logiciel QGIS.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Professeur d'Anglais</strong></div>
+                        <p class="mb-0 small">➔ Soutien et accompagnement linguistique pour des apprenants de tous niveaux (A0-C2).</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Employé polyvalent (Restauration et Vente)</strong></div>
+                        <p class="mb-0 small">➔ Diverses expériences (service, accueil client, vente, gestion des stocks).</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Bénévole 2 mois - Responsable d’Interprétation</strong></div>
+                        <p class="mb-0 small">➔ Responsable de l’interprétation pour les conseillers, gestion des fichiers.</p></li>
+                </ul>
+
+                <h4 class="fw-bold text-danger border-bottom pb-2">FORMATION</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Master - Géomatique et Analyse Spatiale</strong></div>
+                        <p class="mb-0 small">➔ Développement & web mapping, data & automatisation, outils SIG, conception.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence - Géographie et Aménagement</strong></div>
+                        <p class="mb-0 small">➔ Analyse spatiale, statistique, SIG, cartographie, hydrologie, géomorphologie et télédétection.</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais - Université</strong></div>
+                        <p class="mb-0 small">➔ Maîtrise théorique (analyse des textes, culture) + compétences appliquées (traduction, interprétation, enseignement).</p></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat Littéraire</strong></div></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat Scientifique</strong></div></li>
+                </ul>
+
+                <h4 class="fw-bold text-danger border-bottom pb-2">COMPÉTENCES</h4>
+                <div class="row">
+                    <div class="col-md-9">
+                        <p class="small mb-2"><strong>Logiciels et plateformes :</strong> RStudio (Leaflet, Shiny), Envi, OTB, QGIS (Qgis2threejs), ArcGIS Pro, Jupyter Notebook, SQLite, SAGA GIS, Base de Données, USE, VSCode, Figma, Microsoft 360, Inkscape, Magrit, Photoshop, Krita, Rhino, StarUML, AirTable, Vue, GitHub, GitLab, KMade, pgAdmin, PostgreSQL, Wireframe.</p>
+                        <p class="small mb-2"><strong>Analyse de données :</strong> Traitement statistique des données, Feature Tracking, Traitement des images satellites.</p>
+                        <p class="small mb-2"><strong>Cartographie :</strong> Création de cartes 2D/3D et analyses spatiales.</p>
+                        <p class="small mb-2"><strong>Compétences supplémentaires :</strong> Rédaction et analyse de données statistiques, programmation (Python, HTML, CSS, JavaScript, Bootstrap, UML), photogrammétrie, interprétation et traduction, gestion des risques (inondation, éboulement, feux de forêts).</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="small mb-1"><strong>Langues :</strong></p>
+                        <ul class="small ps-3">
+                            <li>Français</li><li>Anglais</li><li>Arabe</li><li>Japonais</li><li>Darja</li><li>Maltais</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4 pt-3 border-top no-print">
+                    <p class="small fw-bold">Portfolio / Plus d'infos :</p>
+                    <a href="https://drive.google.com/drive/folders/1O7YY3HdUIqphC8iI3-B6ROWp1ClH7SLh?usp=sharing" target="_blank" class="btn btn-outline-danger btn-sm">Scanner / Voir le Code QR (Google Drive)</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle for mobile navbar toggles -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="frontend/scheduleComponent.js"></script>
+    <script src="frontend/modalComponent.js"></script>
+    <script src="frontend/i18n.js"></script>
+    <script src="frontend/profileSelector.js"></script>
+    <script src="frontend/auth.js"></script>
+    <script src="frontend/admin.js"></script>
+    <script src="frontend/guest.js"></script>
+    <script src="frontend/main.js"></script>
+</body>
+</html>
