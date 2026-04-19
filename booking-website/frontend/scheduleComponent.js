@@ -3,6 +3,7 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
     const prevBtn = document.getElementById(navIds.prev);
     const nextBtn = document.getElementById(navIds.next);
     const weekDisplay = document.getElementById(navIds.display);
+    const todayBtn = navIds.today ? document.getElementById(navIds.today) : null;
     
     let activeSearchTerm = '';
     let currentWeekStart = getMonday(new Date());
@@ -13,11 +14,15 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
         const date = new Date(d);
         const day = date.getDay();
         const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(date.setDate(diff));
+        const mon = new Date(date.setDate(diff));
+        mon.setHours(0, 0, 0, 0); // Force strictly to midnight local time
+        return mon;
     }
 
     function formatDateForHeader(date) {
-        return date.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+        const lang = window.currentLang === 'fr' ? 'fr-FR' : 'en-US';
+        const str = date.toLocaleDateString(lang, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' });
+        return str.replace(/\b\w/g, c => c.toUpperCase());
     }
 
     function triggerFlashAnimation() {
@@ -30,10 +35,12 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
         const targetMonday = getMonday(d);
         if (currentWeekStart.getTime() !== targetMonday.getTime()) {
             currentWeekStart = targetMonday;
-            if (onWeekChangeCallback) onWeekChangeCallback();
+            renderGrid(activeSearchTerm);
             triggerFlashAnimation();
+            if (onWeekChangeCallback) onWeekChangeCallback();
+        } else {
+            renderGrid(activeSearchTerm);
         }
-        renderGrid(activeSearchTerm);
     }
 
     const hours = [
@@ -42,6 +49,66 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
         "06:00 PM", "07:00 PM", "08:00 PM"
     ];
     
+    function updateCurrentTimeLine() {
+        const oldLine = scheduleGrid.querySelector('.current-time-line');
+        if (oldLine) oldLine.remove();
+
+        if (currentWeekStart.getTime() !== todayWeekStart.getTime()) return;
+
+        const now = new Date();
+        const currentHour = now.getHours();
+        if (currentHour >= 8 && currentHour <= 20) {
+            const hourIndex = currentHour - 8;
+            const timeLabels = scheduleGrid.querySelectorAll('.time-label');
+            if (timeLabels.length > hourIndex + 1) {
+                const labelElement = timeLabels[hourIndex + 1];
+                
+                requestAnimationFrame(() => {
+                    const topPos = labelElement.offsetTop;
+                    const rowHeight = labelElement.offsetHeight;
+                    const minFraction = now.getMinutes() / 60;
+                    const exactY = topPos + (rowHeight * minFraction);
+
+                    const line = document.createElement('div');
+                    line.className = 'current-time-line';
+                    line.style.position = 'absolute';
+                    line.style.top = exactY + 'px';
+                    line.style.left = '80px'; 
+                    line.style.right = '0';
+                    line.style.height = '0';
+                    line.style.borderTop = '2px dashed rgba(220, 53, 69, 0.6)';
+                    line.style.zIndex = '5';
+                    line.style.pointerEvents = 'none'; 
+                    
+                    const tooltipArea = document.createElement('div');
+                    tooltipArea.style.position = 'absolute';
+                    tooltipArea.style.right = '10px';
+                    tooltipArea.style.top = '-11px';
+                    tooltipArea.style.padding = '2px 6px';
+                    tooltipArea.style.background = 'rgba(220, 53, 69, 0.9)';
+                    tooltipArea.style.color = '#fff';
+                    tooltipArea.style.fontSize = '11px';
+                    tooltipArea.style.borderRadius = '4px';
+                    tooltipArea.style.pointerEvents = 'auto';
+                    tooltipArea.style.cursor = 'help';
+                    tooltipArea.style.fontWeight = 'bold';
+                    tooltipArea.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                    
+                    const timeStr = window.currentLang === 'fr' ? 
+                        `${currentHour.toString().padStart(2, '0')}h${now.getMinutes().toString().padStart(2, '0')}` : 
+                        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    tooltipArea.innerText = timeStr;
+                    tooltipArea.title = window.currentLang === 'fr' ? 'Heure actuelle' : 'Current time';
+                    
+                    line.appendChild(tooltipArea);
+                    scheduleGrid.style.position = 'relative';
+                    scheduleGrid.appendChild(line);
+                });
+            }
+        }
+    }
+
     function renderGrid(searchTerm) {
         if (typeof searchTerm === 'string') {
             activeSearchTerm = searchTerm.toLowerCase();
@@ -49,6 +116,9 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
 
         scheduleGrid.innerHTML = '';
         
+        const currentUser = localStorage.getItem('currentUser');
+        const isAdmin = currentUser === 'admin';
+
         // Calculate days for the current week
         const days = [];
         for (let i = 0; i < 7; i++) {
@@ -61,13 +131,22 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
 
         // Update Week Display Title
         if (weekDisplay) {
-            const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-            weekDisplay.innerText = `${days[0].toLocaleDateString(undefined, dateOptions)} - ${days[6].toLocaleDateString(undefined, dateOptions)}`;
+            const lang = window.currentLang === 'fr' ? 'fr-FR' : 'en-US';
+            const dateOptions = { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Europe/Paris' };
+            weekDisplay.innerText = `${days[0].toLocaleDateString(lang, dateOptions)} - ${days[6].toLocaleDateString(lang, dateOptions)}`;
         }
 
-        // Hide the "Previous Week" button if we are looking at the current week
-        if (prevBtn) {
-            prevBtn.style.visibility = currentWeekStart.getTime() <= todayWeekStart.getTime() ? 'hidden' : 'visible';
+        if (nextBtn) {
+            const weeksDiff = Math.round((currentWeekStart.getTime() - todayWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+            if (!isAdmin && weeksDiff >= 4) {
+                nextBtn.style.visibility = 'hidden';
+            } else {
+                nextBtn.style.visibility = 'visible';
+            }
+        }
+
+        if (todayBtn) {
+            todayBtn.style.display = (currentWeekStart.getTime() === todayWeekStart.getTime()) ? 'none' : 'block';
         }
 
         // 1. Create top-left empty corner cell
@@ -75,11 +154,29 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
         corner.classList.add('grid-header', 'time-label');
         scheduleGrid.appendChild(corner);
 
+        function getDisplayTime(timeStr) {
+            if (window.currentLang !== 'fr') return timeStr;
+            const [time, modifier] = timeStr.split(' ');
+            let [h, m] = time.split(':');
+            h = parseInt(h, 10);
+            if (modifier === 'PM' && h < 12) h += 12;
+            if (modifier === 'AM' && h === 12) h = 0;
+            return `${h.toString().padStart(2, '0')}h${m}`;
+        }
+
         // 2. Create Day Headers
         days.forEach(dayDate => {
             const header = document.createElement('div');
             header.classList.add('grid-header');
             header.innerText = formatDateForHeader(dayDate);
+            
+            const isToday = (dayDate.toDateString() === new Date().toDateString());
+            if (isToday) {
+                header.style.setProperty('background-color', '#e8f5e9', 'important');
+                header.style.setProperty('color', '#198754', 'important');
+                header.style.setProperty('border-bottom', '3px solid #198754', 'important');
+            }
+            
             scheduleGrid.appendChild(header);
         });
 
@@ -87,7 +184,7 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
         hours.forEach(time => {
             const timeLabel = document.createElement('div');
             timeLabel.classList.add('time-label');
-            timeLabel.innerText = time;
+            timeLabel.innerText = getDisplayTime(time);
             scheduleGrid.appendChild(timeLabel);
 
             // Add clickable slots for each day in this row
@@ -104,9 +201,6 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                 let reservations = JSON.parse(localStorage.getItem('reservations')) || [];
                 if (!Array.isArray(reservations)) reservations = [];
 
-                const currentUser = localStorage.getItem('currentUser');
-                const isAdmin = currentUser === 'admin';
-                
                 const cellDate = new Date(dayDate);
                 cellDate.setHours(0,0,0,0);
 
@@ -121,6 +215,9 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                 };
                 const { hour: slotHour, minute: slotMinute } = buildSlotDate();
 
+                const slotExactMs = cellDate.getTime() + (slotHour * 60 + slotMinute) * 60 * 1000;
+                const isPast = slotExactMs < Date.now();
+
                 reservations.forEach((res, resIdx) => {
                     if (res.status === 'cancelled' || res.status === 'rejected' || res.status === 'reject') return;
 
@@ -128,12 +225,34 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
 
                     // Blocked ranges
                     if (res.status === 'blocked') {
-                        const bStart = new Date(`${res.startDate}T${res.startTime || '00:00'}:00`);
-                        const bEnd = new Date(`${res.endDate}T${res.endTime || '23:59'}:59`);
-                        const slotExactDate = new Date(cellDate);
-                        slotExactDate.setHours(slotHour, slotMinute, 0, 0);
+                        const bStartDay = new Date(`${res.startDate}T00:00:00`);
+                        const bEndDay = new Date(`${res.endDate}T23:59:59`);
+                        
+                        if (cellDate.getTime() >= bStartDay.getTime() && cellDate.getTime() <= bEndDay.getTime()) {
+                            let isBlocked = false;
+                            
+                            if (res.recurring === 'daily') {
+                                const bStartTime = new Date(cellDate);
+                                if (res.startTime) { const [h, m] = res.startTime.split(':'); bStartTime.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0); }
+                                else bStartTime.setHours(0, 0, 0, 0);
 
-                        if (slotExactDate.getTime() >= bStart.getTime() && slotExactDate.getTime() <= bEnd.getTime()) {
+                                const bEndTime = new Date(cellDate);
+                                if (res.endTime) { const [h, m] = res.endTime.split(':'); bEndTime.setHours(parseInt(h, 10), parseInt(m, 10), 59, 999); }
+                                else bEndTime.setHours(23, 59, 59, 999);
+
+                                const slotExactDate = new Date(cellDate);
+                                slotExactDate.setHours(slotHour, slotMinute, 0, 0);
+
+                                if (slotExactDate.getTime() >= bStartTime.getTime() && slotExactDate.getTime() <= bEndTime.getTime()) isBlocked = true;
+                            } else {
+                                const bStart = new Date(`${res.startDate}T${res.startTime || '00:00'}:00`);
+                                const bEnd = new Date(`${res.endDate}T${res.endTime || '23:59'}:59`);
+                                const slotExactDate = new Date(cellDate);
+                                slotExactDate.setHours(slotHour, slotMinute, 0, 0);
+                                if (slotExactDate.getTime() >= bStart.getTime() && slotExactDate.getTime() <= bEnd.getTime()) isBlocked = true;
+                            }
+
+                        if (isBlocked) {
                             const displayText = isAdmin 
                                 ? (res.message ? `${window.t('blocked')}:\n${res.message}` : window.t('blocked'))
                                 : window.t('unavailable');
@@ -149,12 +268,13 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                                 createdTs
                             });
                         }
+                        }
                         return;
                     }
 
                     if (!res.slots) return;
 
-                    res.slots.forEach(s => {
+                    res.slots.forEach((s, slotIdx) => {
                         if (s.time !== time) return;
 
                         let isMatch = false;
@@ -163,10 +283,15 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                             slotDate.setHours(0,0,0,0);
                             
                             if (res.recurring === 'weekly') {
-                                const endDate = res.endDate ? new Date(res.endDate) : new Date(8640000000000000);
-                                endDate.setHours(23,59,59,999);
-                                if (cellDate.getTime() >= slotDate.getTime() && cellDate.getTime() <= endDate.getTime() && cellDate.getDay() === slotDate.getDay()) {
-                                    isMatch = true;
+                                if (res.endDate) {
+                                    // Fallback for legacy multi-week behavior
+                                    const endDate = new Date(`${res.endDate}T23:59:59`);
+                                    if (cellDate.getTime() >= slotDate.getTime() && cellDate.getTime() <= endDate.getTime() && cellDate.getDay() === slotDate.getDay()) {
+                                        isMatch = true;
+                                    }
+                                } else {
+                                    // New exact match for explicitly generated slots
+                                    if (cellDate.getTime() === slotDate.getTime()) isMatch = true;
                                 }
                             } else {
                                 if (cellDate.getTime() === slotDate.getTime()) isMatch = true;
@@ -180,32 +305,33 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                         const isOwnerMatch = currentUser === res.email || currentUser === res.phone;
                         const untilTxt = res.recurring === 'weekly' && res.endDate ? `(${window.t('until')} ${new Date(res.endDate).toLocaleDateString()})` : (res.recurring === 'weekly' ? `(${window.t('weekly')})` : '');
                         const nameStr = (isAdmin || isOwnerMatch) ? `${res.fname}${untilTxt ? `\n${untilTxt}` : ''}` : '';
-                        const searchStr = `${res.fname} ${res.lname} ${res.email} ${res.phone} ${(res.slots || []).map(sl=>sl.day).join(' ')}`.toLowerCase();
+                        const searchStr = `${res.fname} ${res.lname} ${res.email} ${res.phone} ${res.resId || ''} ${(res.slots || []).map(sl=>sl.day).join(' ')}`.toLowerCase();
                         const searchHighlight = activeSearchTerm && searchStr.includes(activeSearchTerm);
-                        const highlight = (isAdmin && window.activeAdminResIndex === resIdx) || searchHighlight;
+                        const isGuestHighlighted = !isAdmin && window.activeGuestResIndex === resIdx;
+                        const highlight = (isAdmin && window.activeAdminResIndex === resIdx) || searchHighlight || isGuestHighlighted;
+
+                        const resKey = res._id || `local-${resIdx}`;
+                        const isUnchecked = isAdmin && res.status === 'pending' && window.pendingSlotSelections && window.pendingSlotSelections[resKey] && !window.pendingSlotSelections[resKey].includes(slotIdx);
 
                         const cardState = res.status === 'approved' ? 'taken' : res.status === 'pending' ? 'processing' : 'free';
 
                         slotMatches.push({
                             res,
                             resIdx,
+                            slotIdx,
                             status: res.status,
                             cardState,
                             text: nameStr,
                             isOwner: isOwnerMatch,
                             highlight,
+                            isUnchecked,
                             createdTs
                         });
                     });
                 });
 
-                // Sort oldest first, but keep the highlighted one on top
+                // Sort oldest first (stable order, no longer jumping to top on highlight)
                 slotMatches.sort((a, b) => {
-                    const activeIdx = window.activeAdminResIndex;
-                    if (activeIdx !== null) {
-                        if (a.resIdx === activeIdx && b.resIdx !== activeIdx) return -1;
-                        if (b.resIdx === activeIdx && a.resIdx !== activeIdx) return 1;
-                    }
                     return a.createdTs - b.createdTs;
                 });
 
@@ -219,6 +345,9 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                     if (options.resIdx !== undefined) {
                         card.dataset.resIndex = options.resIdx;
                     }
+                    if (options.slotIdx !== undefined) {
+                        card.dataset.slotIndex = options.slotIdx;
+                    }
                     card.dataset.time = time;
                     card.dataset.day = slotDayStr;
                     card.dataset.fullDate = dayDate.toISOString();
@@ -226,10 +355,43 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                     if (state === 'processing') card.dataset.originalState = 'processing';
                     const label = text || (state === 'free' ? window.t('available') : window.t(state === 'processing' ? 'pending' : state === 'taken' ? 'booked' : 'blocked'));
                     const orderBadge = options.orderNumber ? `#${options.orderNumber} ` : '';
-                    card.innerText = `${orderBadge}${label}`;
+                    const isSlotDone = (options.res && options.res.slots && options.slotIdx !== undefined && options.res.slots[options.slotIdx].classDone) || (options.res && options.res.classDone);
+                    const doneMark = isSlotDone ? ' <span class="d-inline-flex align-items-center justify-content-center bg-success text-white rounded-circle ms-1" style="width: 14px; height: 14px; font-size: 10px; line-height: 1;">✓</span>' : '';
+                    const escapedLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                    card.innerHTML = `${orderBadge}${escapedLabel}${doneMark}`;
+                    
+                    if (options.res && (options.isOwner || isAdmin)) {
+                        const r = options.res;
+                        let tooltipText = `${r.fname} ${r.lname} (ID: ${r.resId || 'N/A'})\n`;
+                        tooltipText += `Coach: ${r.adminProfile}\n`;
+                        tooltipText += `Statut: ${window.t(state).toUpperCase()}\n`;
+                        tooltipText += `Type: ${r.recurring === 'weekly' ? window.t('weekly') : window.t('oneTime')}`;
+                        if (r.adminReply) tooltipText += `\n\n- ${window.t('coachReply')} ${r.adminReply}`;
+                        else if (r.message) tooltipText += `\n\n- ${window.t('message')}: ${r.message}`;
+                        card.title = tooltipText;
+                    }
 
                     if (options.highlight) {
                         card.classList.add('highlight-slot');
+                    }
+                    
+                    if (options.isUnchecked) {
+                        card.style.setProperty('opacity', '0.5', 'important');
+                        card.style.setProperty('background-color', '#e9ecef', 'important');
+                        card.style.setProperty('color', '#6c757d', 'important');
+                        card.style.setProperty('text-decoration', 'line-through', 'important');
+                    }
+                    
+                    if (options.isPast) {
+                        if (isAdmin) {
+                            card.style.setProperty('opacity', '0.8', 'important');
+                            card.style.setProperty('filter', 'grayscale(30%)', 'important');
+                        } else {
+                            card.style.setProperty('opacity', '0.5', 'important');
+                            card.style.setProperty('filter', 'grayscale(80%)', 'important');
+                            card.style.setProperty('pointer-events', 'none', 'important');
+                            card.style.setProperty('cursor', 'not-allowed', 'important');
+                        }
                     }
 
                     card.addEventListener('click', () => {
@@ -237,6 +399,11 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                             const idx = parseInt(card.dataset.resIndex, 10);
                             window.activeAdminResIndex = (window.activeAdminResIndex === idx) ? null : idx;
                             window.dispatchEvent(new Event('adminHighlightChange'));
+                        }
+                        if (!isAdmin && options.isOwner && card.dataset.resIndex !== undefined) {
+                            const idx = parseInt(card.dataset.resIndex, 10);
+                            window.activeGuestResIndex = (window.activeGuestResIndex === idx) ? null : idx;
+                            window.dispatchEvent(new Event('guestHighlightChange'));
                         }
                         if (card.classList.contains('free') || card.classList.contains('selected') || card.classList.contains('processing')) {
                             onSlotClickCallback(card);
@@ -306,7 +473,7 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                 };
 
                 if (!hasMatches) {
-                    createCard('free');
+                    createCard('free', '', { isPast });
                 } else {
                     slotMatches.forEach((match, idxOrder) => {
                         let label = '';
@@ -316,10 +483,14 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                         else label = match.text || window.t('available');
 
                         createCard(match.cardState, label, { 
+                            res: match.res,
                             resIdx: match.resIdx, 
+                            slotIdx: match.slotIdx,
                             isOwner: match.isOwner, 
                             highlight: match.highlight,
-                            orderNumber: idxOrder + 1
+                            isUnchecked: match.isUnchecked,
+                            orderNumber: idxOrder + 1,
+                            isPast
                         });
                     });
 
@@ -334,26 +505,49 @@ function initSchedule(gridElementId, navIds, onSlotClickCallback, onWeekChangeCa
                 scheduleGrid.appendChild(slotContainer);
             });
         });
+
+        updateCurrentTimeLine();
     }
 
     if (prevBtn && nextBtn) {
         prevBtn.addEventListener('click', () => { 
-            if (currentWeekStart.getTime() > todayWeekStart.getTime()) {
-                currentWeekStart.setDate(currentWeekStart.getDate() - 7); 
-                onWeekChangeCallback(); 
-                triggerFlashAnimation();
-                renderGrid(); 
-            }
+            // Allow going backward indefinitely for both guests and admins
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7); 
+            renderGrid(); 
+            triggerFlashAnimation();
+            onWeekChangeCallback(); 
         });
         nextBtn.addEventListener('click', () => { 
+            const weeksDiff = Math.round((currentWeekStart.getTime() - todayWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+            const currentUser = localStorage.getItem('currentUser');
+            const isAdmin = currentUser === 'admin';
+            if (!isAdmin && weeksDiff >= 4) return;
+
             currentWeekStart.setDate(currentWeekStart.getDate() + 7); 
-            onWeekChangeCallback(); 
-            triggerFlashAnimation();
             renderGrid(); 
+            triggerFlashAnimation();
+            onWeekChangeCallback(); 
+        });
+    }
+
+    if (todayBtn) {
+        todayBtn.addEventListener('click', () => {
+            goToDate(new Date());
         });
     }
 
     renderGrid();
+
+    window.addEventListener('languageChanged', () => {
+        triggerFlashAnimation();
+        renderGrid(activeSearchTerm);
+    });
+
+    setInterval(() => {
+        if (document.getElementById(gridElementId)) {
+            updateCurrentTimeLine();
+        }
+    }, 60000);
 
     return { refresh: renderGrid, getVisibleDays: () => currentViewDays, goToDate: goToDate };
 }

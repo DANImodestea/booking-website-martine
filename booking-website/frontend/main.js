@@ -47,19 +47,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    window.guestSchedule = initSchedule('schedule-grid', { prev: 'prev-week-btn', next: 'next-week-btn', display: 'week-display' },
+    window.guestSchedule = initSchedule('schedule-grid', { prev: 'prev-week-btn', next: 'next-week-btn', display: 'week-display', today: 'today-btn' },
         (clickedSlot) => {
             let selectedSlots = window.getSelectedSlots ? window.getSelectedSlots() : [];
             if (clickedSlot.classList.contains('selected')) {
                 clickedSlot.classList.remove('selected');
                 clickedSlot.classList.add(clickedSlot.dataset.originalState || 'free');
-                selectedSlots = selectedSlots.filter(s => s !== clickedSlot);
+                selectedSlots = [];
                 if (window.setSelectedSlots) window.setSelectedSlots(selectedSlots);
                 if (window.updateBookButton) window.updateBookButton();
             } else if (clickedSlot.classList.contains('free')) {
+                // Clear previous selection visually
+                selectedSlots.forEach(s => {
+                    s.classList.remove('selected');
+                    s.classList.add(s.dataset.originalState || 'free');
+                });
                 clickedSlot.classList.remove('free');
                 clickedSlot.classList.add('selected');
-                selectedSlots.push(clickedSlot);
+                selectedSlots = [clickedSlot];
                 if (window.setSelectedSlots) window.setSelectedSlots(selectedSlots);
                 if (window.updateBookButton) window.updateBookButton();
             } else if (clickedSlot.classList.contains('processing')) {
@@ -67,9 +72,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     title: window.t('waitlistReq'), message: window.t('waitlistMsg'),
                     buttons: [
                         { text: window.t('yesProceed'), class: 'btn-warning w-100', onClick: () => {
+                            selectedSlots.forEach(s => {
+                                s.classList.remove('selected');
+                                s.classList.add(s.dataset.originalState || 'free');
+                            });
                             clickedSlot.classList.remove('processing');
                             clickedSlot.classList.add('selected');
-                            selectedSlots.push(clickedSlot);
+                            selectedSlots = [clickedSlot];
                             if (window.setSelectedSlots) window.setSelectedSlots(selectedSlots);
                             if (window.updateBookButton) window.updateBookButton();
                         }},
@@ -81,10 +90,10 @@ document.addEventListener("DOMContentLoaded", () => {
         () => { if (window.setSelectedSlots) window.setSelectedSlots([]); if (window.updateBookButton) window.updateBookButton(); }
     );
 
-    window.adminSchedule = initSchedule('admin-schedule-grid', { prev: 'admin-prev-week-btn', next: 'admin-next-week-btn', display: 'admin-week-display' },
+    window.adminSchedule = initSchedule('admin-schedule-grid', { prev: 'admin-prev-week-btn', next: 'admin-next-week-btn', display: 'admin-week-display', today: 'admin-today-btn' },
         (clickedSlot) => {
             if (!clickedSlot.classList.contains('free')) return;
-            const newRes = { adminProfile: window.getSelectedProfile(), fname: "Admin", lname: "Block", email: "", phone: "", message: "Manual admin reservation", recurring: "one-time", status: "pending", slots: [{ day: clickedSlot.dataset.day, time: clickedSlot.dataset.time }] };
+            const newRes = { adminProfile: window.getSelectedProfile(), fname: "Admin", lname: "Block", email: "", phone: "", message: "Manual admin reservation", recurring: "one-time", status: "pending", slots: [{ day: clickedSlot.dataset.day, time: clickedSlot.dataset.time, fullDate: clickedSlot.dataset.fullDate }] };
             
             fetch('/api/reservations', {
                 method: 'POST',

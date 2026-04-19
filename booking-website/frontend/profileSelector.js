@@ -12,14 +12,20 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('selectedAdminProfile');
     window.selectedAdminProfile = null;
     
-    // Show profile modal and hide role modal
+    const urlParams = new URLSearchParams(window.location.search);
+    const coachParam = urlParams.get('coach');
+
     const profileModal = document.getElementById('profile-modal');
-    const roleModal = document.getElementById('role-modal');
-    if (profileModal) profileModal.style.display = 'flex';
-    if (roleModal) roleModal.style.display = 'none';
     
-    console.log('[WAIT] [PROFILE] Waiting for profile selection...');
-    setupProfileSelection();
+    if (coachParam === 'Martine' || coachParam === 'Dani') {
+        console.log('[DIRECT LINK] Automatically selecting profile:', coachParam);
+        selectProfile(coachParam);
+        if (profileModal) profileModal.style.display = 'none';
+    } else {
+        if (profileModal) profileModal.style.display = 'flex';
+        console.log('[WAIT] [PROFILE] Waiting for profile selection...');
+        setupProfileSelection();
+    }
 });
 
 // Setup profile selection listeners
@@ -35,21 +41,6 @@ function setupProfileSelection() {
         profileDaniBtn.addEventListener('click', () => selectProfile('Dani'));
     }
     
-    // Back button from role modal
-    const backFromRoleBtn = document.getElementById('btn-back-from-role');
-    if (backFromRoleBtn) {
-        backFromRoleBtn.addEventListener('click', () => {
-            console.log('[BACK] [PROFILE] Going back to profile selector');
-            localStorage.removeItem('selectedAdminProfile');
-            window.selectedAdminProfile = null;
-            
-            const roleModal = document.getElementById('role-modal');
-            const profileModal = document.getElementById('profile-modal');
-            
-            if (roleModal) roleModal.style.display = 'none';
-            if (profileModal) profileModal.style.display = 'flex';
-        });
-    }
     
     // Setup CV Modals Listeners
     const cvMartineBtn = document.getElementById('btn-martine-cv');
@@ -99,7 +90,7 @@ function selectProfile(profileName) {
     localStorage.setItem('selectedAdminProfile', profileName);
     
     // Update UI with selected profile
-    updateUIWithProfile(profileName);
+    window.updateUIWithProfile(profileName);
     
     // Update admin title
     const adminTitle = document.getElementById('admin-title');
@@ -115,7 +106,7 @@ function selectProfile(profileName) {
 }
 
 // Update UI based on selected profile
-function updateUIWithProfile(profileName) {
+window.updateUIWithProfile = function(profileName) {
     const guestNavName = document.getElementById('guest-nav-name');
     const guestNavImg = document.getElementById('guest-nav-img');
     const adminNavImg = document.getElementById('admin-nav-img');
@@ -125,6 +116,7 @@ function updateUIWithProfile(profileName) {
     const navPhoneLink = document.getElementById('nav-phone-link');
     const navPhoneText = document.getElementById('nav-phone-text');
     const navAvailText = document.getElementById('nav-avail-text');
+    const loginTeacherImg = document.getElementById('login-teacher-img');
 
     if (profileName === 'Martine') {
         if (guestNavName) guestNavName.textContent = 'Martine Juillan';
@@ -136,6 +128,11 @@ function updateUIWithProfile(profileName) {
         if (navPhoneLink) navPhoneLink.href = 'tel:+33676100223';
         if (navPhoneText) navPhoneText.textContent = '06 76 10 02 23';
         if (navAvailText) navAvailText.setAttribute('data-i18n', 'martineAvailability');
+        if (loginTeacherImg) {
+            loginTeacherImg.src = 'img/Martine.jpeg';
+            loginTeacherImg.style.border = '3px solid #667eea';
+            loginTeacherImg.style.display = 'block';
+        }
     } else {
         if (guestNavName) guestNavName.textContent = 'Dani Rouabah';
         if (guestNavImg) guestNavImg.src = 'img/Dani.jpeg';
@@ -146,6 +143,11 @@ function updateUIWithProfile(profileName) {
         if (navPhoneLink) navPhoneLink.href = 'tel:+33769741268';
         if (navPhoneText) navPhoneText.textContent = '07 69 74 12 68';
         if (navAvailText) navAvailText.setAttribute('data-i18n', 'daniAvailability');
+        if (loginTeacherImg) {
+            loginTeacherImg.src = 'img/Dani.jpeg';
+            loginTeacherImg.style.border = '3px solid #f5576c';
+            loginTeacherImg.style.display = 'block';
+        }
     }
     
     // Re-apply translations for dynamic content changes
@@ -177,7 +179,6 @@ window.changeProfile = function() {
     window.selectedAdminProfile = null;
     
     const profileModal = document.getElementById('profile-modal');
-    const roleModal = document.getElementById('role-modal');
     
     // Hide all other modals
     document.querySelectorAll('.custom-modal').forEach(modal => {

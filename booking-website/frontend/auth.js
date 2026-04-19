@@ -1,20 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const roleModal = document.getElementById('role-modal');
     const loginModal = document.getElementById('login-modal');
     const guestView = document.getElementById('guest-view');
     const adminView = document.getElementById('admin-view');
     const guestLoginModal = document.getElementById('guest-login-modal');
     
-    // Validation helper for French phone and email
-    function isValidFrenchPhoneOrEmail(input) {
+    // Validation helper for email only
+    function isValidEmail(input) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        // French phone format: +33 or 0, followed by numbers (spaces/dashes optional)
-        const frenchPhoneRegex = /^((\+33|0)[1-9](?:[0-9]{8})|(\+33|0)[1-9](?:[0-9\s\-]{8,}))$/;
         
-        // Remove spaces and dashes for validation
-        const cleanPhone = input.replace(/[\s\-]/g, '');
-        
-        return emailRegex.test(input) || frenchPhoneRegex.test(cleanPhone);
+        return emailRegex.test(input);
     }
     
     // Admin button from profile selector
@@ -23,22 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (profileModal) {
             profileModal.style.display = 'none';
         }
+        if (guestLoginModal) guestLoginModal.style.display = 'none';
         loginModal.style.display = 'flex';
     });
     
-    document.getElementById('btn-guest')?.addEventListener('click', () => {
-        roleModal.style.display = 'none';
-        guestLoginModal.style.display = 'flex';
-    });
-
     document.getElementById('close-guest-login')?.addEventListener('click', () => {
         guestLoginModal.style.display = 'none';
-        roleModal.style.display = 'flex';
+        document.getElementById('profile-modal').style.display = 'flex';
     });
     
     document.getElementById('btn-back-from-guest-login')?.addEventListener('click', () => {
         guestLoginModal.style.display = 'none';
-        roleModal.style.display = 'flex';
+        document.getElementById('profile-modal').style.display = 'flex';
         document.getElementById('guest-id-input').value = '';
     });
 
@@ -53,11 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         
-        // Validate French phone or email format
-        if (!isValidFrenchPhoneOrEmail(guestId)) {
+        // Validate email format
+        if (!isValidEmail(guestId)) {
             window.showDialog({ 
                 title: 'Format invalide', 
-                message: 'Veuillez entrer un email valide ou un numéro de téléphone français (ex: 06 12 34 56 78 ou email@example.com)',
+                message: 'Veuillez entrer une adresse email valide (ex: email@example.com)',
                 buttons: [{ text: 'OK', class: 'btn-warning w-100' }] 
             });
             return;
@@ -73,20 +63,20 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-guest-logout')?.addEventListener('click', () => {
         localStorage.removeItem('currentUser');
         guestView.style.display = 'none';
-        roleModal.style.display = 'flex';
+        document.getElementById('profile-modal').style.display = 'flex';
         document.getElementById('guest-id-input').value = '';
     });
 
     document.getElementById('close-login')?.addEventListener('click', () => {
         loginModal.style.display = 'none';
-        roleModal.style.display = 'flex';
+        document.getElementById('profile-modal').style.display = 'flex';
         document.getElementById('admin-user').value = '';
         document.getElementById('admin-pass').value = '';
     });
     
     document.getElementById('btn-back-from-admin-login')?.addEventListener('click', () => {
         loginModal.style.display = 'none';
-        roleModal.style.display = 'flex';
+        document.getElementById('profile-modal').style.display = 'flex';
         document.getElementById('admin-user').value = '';
         document.getElementById('admin-pass').value = '';
     });
@@ -106,8 +96,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 const data = await response.json();
                 localStorage.setItem('token', data.token); // Save the JWT
                 localStorage.setItem('currentUser', 'admin');
+                // Set the selected admin profile from login response
+                window.selectedAdminProfile = data.adminProfile;
+                localStorage.setItem('selectedAdminProfile', data.adminProfile);
+                
+                if (typeof window.updateUIWithProfile === 'function') {
+                    window.updateUIWithProfile(data.adminProfile);
+                }
+                const adminTitle = document.getElementById('admin-title');
+                if (adminTitle) {
+                    adminTitle.innerHTML = `${data.adminProfile} - <span data-i18n="adminDashboard">${window.t('adminDashboard')}</span>`;
+                }
+
                 loginModal.style.display = 'none';
                 adminView.style.display = 'block';
+                // Refetch reservations with the correct profile
+                if (window.fetchReservations) window.fetchReservations();
                 if (window.loadAdminDashboard) window.loadAdminDashboard();
                 if (window.adminSchedule) {
                     const searchInput = document.getElementById('admin-search');
@@ -124,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('btn-logout')?.addEventListener('click', () => {
         adminView.style.display = 'none';
-        roleModal.style.display = 'flex';
+        document.getElementById('profile-modal').style.display = 'flex';
         localStorage.removeItem('currentUser');
         localStorage.removeItem('token');
         document.getElementById('admin-user').value = '';
@@ -138,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-change-profile')?.addEventListener('click', () => {
         console.log('[SYNC] [AUTH] Changing admin profile...');
         adminView.style.display = 'none';
-        roleModal.style.display = 'none';
         localStorage.removeItem('currentUser');
         localStorage.removeItem('token');
         localStorage.removeItem('selectedAdminProfile');

@@ -7,8 +7,8 @@ window.translations = {
         btnGuest: "Réservation Invité",
         btnAdmin: "Administrateur",
         guestLoginTitle: "Connexion Invité",
-        guestIdLabel: "Email ou Numéro de téléphone",
-        guestIdPlaceholder: "Entrez email ou téléphone...",
+        guestIdLabel: "Email",
+        guestIdPlaceholder: "Entrez votre email...",
         continueBtn: "Continuer",
         adminLoginTitle: "Connexion Admin",
         adminUserLabel: "Nom d'utilisateur",
@@ -54,7 +54,7 @@ window.translations = {
         fname: "Prénom *",
         lname: "Nom *",
         email: "Email *",
-        phone: "Téléphone *",
+        phone: "Téléphone (Optionnel)",
         msgOpt: "Message (Optionnel)",
         confirmReq: "Confirmer la demande",
         editDetails: "Modifier les détails",
@@ -89,7 +89,7 @@ window.translations = {
         noKeep: "Non, garder",
         selectAtLeastOne: "Veuillez sélectionner au moins un créneau à valider.",
         inputReq: "Saisie requise",
-        inputReqMsg: "Veuillez entrer un email ou numéro de téléphone.",
+        inputReqMsg: "Veuillez entrer une adresse email valide.",
         ok: "OK",
         accessDenied: "Accès refusé",
         invalidCreds: "Identifiants invalides.",
@@ -127,11 +127,46 @@ window.translations = {
         navLinkedInDesc: "Voir mon profil",
         navEmail: "Me contacter par Email",
         navPhone: "Téléphone :",
-        martineAvailability: "Disponible pour échanger tous les jours de 9h à 13h",
+        martineAvailability: "Disponible de 8h à 19h pour échanger",
         daniAvailability: "Disponible de 8h à 19h pour échanger",
         readyToBook: "Prêt à réserver ?",
         selectSlotsText: "Sélectionnez un ou plusieurs créneaux verts sur le calendrier, puis cliquez sur le bouton ci-dessous.",
-        bookBtnDefault: "Sélectionnez un créneau"
+        bookBtnDefault: "Sélectionnez un créneau",
+        slotsSelected: "{selected} créneau(x) sélectionné(s) sur {total}",
+        emailImportant: "Votre email est indispensable pour vous envoyer la confirmation de votre réservation.",
+        blockType: "Type de blocage",
+        blockContinuous: "Période continue (ex: Vacances)",
+        blockDaily: "Heures récurrentes (Chaque jour)",
+        dailyRec: "(Chaque jour)",
+        todayBtn: "Aujourd'hui",
+        myLinks: "Mes Liens",
+        adminReply: "Message pour le client",
+        adminReplyPlaceholder: "Ce message sera visible par le client...",
+        clientDbBtn: "Base de données Clients",
+        clientDbTitle: "Base de données Clients",
+        totalRes: "Réservations",
+        lastRes: "Dernière activité",
+        coachReply: "Réponse du coach :",
+        contactInfo: "Contact",
+        markDone: "Cours effectué",
+        markNotDone: "Cours non effectué",
+        eraseCompletely: "Supprimer définitivement",
+        summaryBtn: "Résumé",
+        monthlySummary: "Résumé mensuel",
+        selectMonth: "Sélectionner un mois",
+        printPdf: "Imprimer / Sauvegarder PDF",
+        totalClasses: "Total des cours terminés :",
+        noClassesDone: "Aucun cours terminé ce mois-ci.",
+        globalSummaryBtn: "Résumé Mensuel",
+        learnMore: "En savoir plus",
+        disclaimerBill: "* Ceci est un document récapitulatif d'activité et ne constitue en aucun cas une facture légale.",
+        sendEmailBtn: "Envoyer par Email",
+        emailSentSuccess: "Résumé envoyé avec succès à l'étudiant !",
+        downloadCsv: "Télécharger CSV",
+        viewMessage: "Voir le message",
+        resIdStr: "ID Réservation",
+        savedProfiles: "Profils récents",
+        selectProfileOpt: "-- Sélectionner un profil récent --"
     },
     en: {
         roleTitle: "Welcome",
@@ -139,8 +174,8 @@ window.translations = {
         btnGuest: "Guest Booking",
         btnAdmin: "Administrator",
         guestLoginTitle: "Guest Login",
-        guestIdLabel: "Email or Phone Number",
-        guestIdPlaceholder: "Enter email or phone...",
+        guestIdLabel: "Email",
+        guestIdPlaceholder: "Enter your email...",
         continueBtn: "Continue",
         adminLoginTitle: "Admin Login",
         adminUserLabel: "Username",
@@ -186,7 +221,7 @@ window.translations = {
         fname: "First Name *",
         lname: "Last Name *",
         email: "Email *",
-        phone: "Phone Number *",
+        phone: "Phone (Optional)",
         msgOpt: "Message (Optional)",
         confirmReq: "Confirm Request",
         editDetails: "Edit Details",
@@ -221,7 +256,7 @@ window.translations = {
         noKeep: "No, Keep it",
         selectAtLeastOne: "Please select at least one slot to approve.",
         inputReq: "Input Required",
-        inputReqMsg: "Please enter an email or phone number.",
+        inputReqMsg: "Please enter a valid email address.",
         ok: "OK",
         accessDenied: "Access Denied",
         invalidCreds: "Invalid credentials.",
@@ -259,11 +294,46 @@ window.translations = {
         navLinkedInDesc: "View my profile",
         navEmail: "Contact me via Email",
         navPhone: "Phone:",
-        martineAvailability: "Available to speak everyday from 9am to 1pm",
+        martineAvailability: "Available to speak everyday from 8am to 7pm",
         daniAvailability: "Available to speak everyday from 8am to 7pm",
         readyToBook: "Ready to book?",
         selectSlotsText: "Select one or more green slots on the calendar, then click the button below.",
-        bookBtnDefault: "Select a slot"
+        bookBtnDefault: "Select a slot",
+        slotsSelected: "{selected} slot(s) selected out of {total}",
+        emailImportant: "Your email is essential to send you the confirmation of your booking.",
+        blockType: "Block Type",
+        blockContinuous: "Continuous Period (e.g. Vacation)",
+        blockDaily: "Recurring hours (Every day)",
+        dailyRec: "(Every day)",
+        todayBtn: "Today",
+        myLinks: "My Links",
+        adminReply: "Message for client",
+        adminReplyPlaceholder: "This message will be visible to the client...",
+        clientDbBtn: "Client Database",
+        clientDbTitle: "Client Database",
+        totalRes: "Reservations",
+        lastRes: "Last Activity",
+        coachReply: "Coach reply:",
+        contactInfo: "Contact",
+        markDone: "Class done",
+        markNotDone: "Class not done",
+        eraseCompletely: "Erase completely",
+        summaryBtn: "Summary",
+        monthlySummary: "Monthly Summary",
+        selectMonth: "Select a month",
+        printPdf: "Print / Save PDF",
+        totalClasses: "Total completed classes:",
+        noClassesDone: "No classes completed this month.",
+        globalSummaryBtn: "Monthly Summary",
+        learnMore: "Learn more",
+        disclaimerBill: "* This is an activity summary document and does not constitute a legal invoice.",
+        sendEmailBtn: "Send via Email",
+        emailSentSuccess: "Summary sent successfully to the student!",
+        downloadCsv: "Download CSV",
+        viewMessage: "View Message",
+        resIdStr: "Reservation ID",
+        savedProfiles: "Recent Profiles",
+        selectProfileOpt: "-- Select a recent profile --"
     }
 };
 
@@ -290,31 +360,26 @@ window.applyTranslations = function() {
 document.addEventListener("DOMContentLoaded", () => {
     window.applyTranslations();
 
-    const flags = { fr: '🇫🇷', en: '🇬🇧' };
+    const updateLangUI = () => {
+        document.querySelectorAll('.lang-btn-toggle').forEach(btn => {
+            if (btn.dataset.lang === window.currentLang) {
+                btn.classList.add('btn-secondary', 'text-white');
+                btn.classList.remove('btn-outline-secondary');
+            } else {
+                btn.classList.add('btn-outline-secondary');
+                btn.classList.remove('btn-secondary', 'text-white');
+            }
+        });
+    };
     
-    document.querySelectorAll('.lang-selector').forEach(selector => {
-        const btn = selector.querySelector('.lang-btn');
-        const menu = selector.querySelector('.lang-menu');
-        if (btn && menu) {
-            btn.innerHTML = flags[window.currentLang];
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isVisible = menu.style.display === 'block';
-                document.querySelectorAll('.lang-menu').forEach(m => m.style.display = 'none');
-                menu.style.display = isVisible ? 'none' : 'block';
-            });
-        }
-    });
+    updateLangUI();
 
-    document.addEventListener('click', () => document.querySelectorAll('.lang-menu').forEach(m => m.style.display = 'none'));
-
-    document.querySelectorAll('.lang-option').forEach(opt => {
+    document.querySelectorAll('.lang-btn-toggle').forEach(opt => {
         opt.addEventListener('click', (e) => {
             const lang = e.currentTarget.getAttribute('data-lang');
             localStorage.setItem('lang', lang);
             window.currentLang = lang;
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.innerHTML = flags[lang]);
-            document.querySelectorAll('.lang-menu').forEach(m => m.style.display = 'none');
+            updateLangUI();
             window.applyTranslations();
         });
     });

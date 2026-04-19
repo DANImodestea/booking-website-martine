@@ -6,16 +6,35 @@
     <title>Book a Class</title>
     <!-- Add Bootstrap 5 for clean responsive layouts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="frontend/styles.css">
     <style>
         /* Print styling for CV Modals */
         @media print {
             body > *:not(.custom-modal) { display: none !important; }
-            .custom-modal:not([style*="display: flex"]):not([style*="display: block"]) { display: none !important; }
+            .custom-modal:not([style*="display: flex"]):not([style*="display: block"]):not([style*="opacity: 1"]) { display: none !important; }
             .custom-modal { position: absolute !important; left: 0 !important; top: 0 !important; background: none !important; padding: 0 !important; display: block !important; height: auto !important; overflow: visible !important; align-items: flex-start !important; }
             .modal-content { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; max-height: none !important; height: auto !important; }
             .no-print { display: none !important; }
             .modal-content .cv-body { font-size: 12px; }
+        }
+
+        @keyframes pulse-martine {
+            0% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 15px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+        @keyframes pulse-dani {
+            0% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(245, 87, 108, 0.7); }
+            70% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 15px rgba(245, 87, 108, 0); }
+            100% { box-shadow: 0 4px 15px rgba(0,0,0,0.2), 0 0 0 0 rgba(245, 87, 108, 0); }
+        }
+        .profile-card .btn-outline-primary, .profile-card .btn-outline-danger {
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        .profile-card:hover .btn-outline-primary, .profile-card:hover .btn-outline-danger {
+            opacity: 1;
         }
         
         /* Profile Selector & Navbar Image Hover Effects */
@@ -56,19 +75,44 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.08);
         }
         .contact-icon { flex-shrink: 0; }
+
+        .context-menu-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Enhanced Professional Highlighting & Backgrounds */
+        .highlight-card {
+            border: 2px solid #ffc107 !important;
+            box-shadow: 0 0 14px rgba(255, 193, 7, 0.45) !important;
+            transform: scale(1.02);
+            z-index: 10;
+            position: relative;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .status-pending-bg { background-color: #fffdf5 !important; border-left: 4px solid #ffc107 !important; }
+        .status-approved-bg { background-color: #f4fbf5 !important; border-left: 4px solid #198754 !important; }
+        .status-rejected-bg { background-color: #fdf5f5 !important; border-left: 4px solid #dc3545 !important; }
+        .status-blocked-bg { background-color: #f8f9fa !important; border-left: 4px solid #6c757d !important; }
     </style>
 </head>
 <body class="bg-light">
+    <!-- Context Menu -->
+    <div id="admin-context-menu" class="bg-white shadow-lg border rounded no-print" style="display: none; position: absolute; z-index: 1060; min-width: 220px; overflow: hidden;">
+        <button class="btn btn-light text-start w-100 border-bottom rounded-0 py-2 context-menu-item fw-bold" id="context-btn-done"><i class="bi bi-check-circle text-success me-2"></i> <span data-i18n="markDone">Cours effectué</span></button>
+        <button class="btn btn-light text-start w-100 border-bottom rounded-0 py-2 context-menu-item fw-bold" id="context-btn-not-done"><i class="bi bi-x-circle text-warning me-2"></i> <span data-i18n="markNotDone">Cours non effectué</span></button>
+        <button class="btn btn-light text-start text-danger w-100 rounded-0 py-2 context-menu-item fw-bold" id="context-btn-delete"><i class="bi bi-trash text-danger me-2"></i> <span data-i18n="eraseCompletely">Supprimer définitivement</span></button>
+    </div>
+
     <!-- Profile Selection Modal (Appears First) -->
     <div id="profile-modal" class="custom-modal" style="display: flex;">
         <div class="modal-content shadow text-center position-relative">
             
             <!-- Language Selector (Top Right) -->
-            <div class="lang-selector position-absolute top-0 end-0 m-3 text-end">
-                <button class="lang-btn btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
-                <div class="lang-menu shadow-sm border rounded bg-white mt-1" style="display: none; position: absolute; right: 0; z-index: 1055;">
-                    <div class="lang-option p-2 border-bottom text-start" data-lang="fr" style="cursor:pointer;">🇫🇷 Français</div>
-                    <div class="lang-option p-2 text-start" data-lang="en" style="cursor:pointer;">🇬🇧 English</div>
+            <div class="position-absolute top-0 end-0 m-3 text-end" style="z-index: 1055;">
+                <div class="btn-group shadow-sm bg-white rounded-pill" role="group">
+                    <button class="btn btn-sm px-3 rounded-start-pill lang-btn-toggle" data-lang="fr">🇫🇷</button>
+                    <button class="btn btn-sm px-3 rounded-end-pill lang-btn-toggle" data-lang="en">🇬🇧</button>
                 </div>
             </div>
             
@@ -78,18 +122,18 @@
             <div class="d-flex justify-content-center gap-5 mt-4 flex-wrap">
                 <!-- Martine Profile -->
                 <div class="profile-card text-center cursor-pointer" id="profile-martine" style="width: 150px; cursor: pointer;">
-                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: center; background-repeat: no-repeat; background-image: url('img/Martine.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #667eea; transition: transform 0.3s ease, filter 0.3s ease;"></div>
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: center; background-repeat: no-repeat; background-image: url('img/Martine.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #667eea; transition: transform 0.3s ease, filter 0.3s ease; animation: pulse-martine 1s infinite;"></div>
                     <h3 class="fw-bold mt-3" style="color: #333;">Martine</h3>
                     <p class="text-muted small" data-i18n="martineDesc">Enseignante d'anglais</p>
-                    <button id="btn-martine-cv" class="btn btn-sm btn-outline-primary mt-2 w-100">Profil & CV</button>
+                    <button id="btn-martine-cv" class="btn btn-sm btn-outline-secondary mt-2 w-100" data-i18n="learnMore">En savoir plus</button>
                 </div>
 
                 <!-- Dani Profile -->
                 <div class="profile-card text-center cursor-pointer" id="profile-dani" style="width: 150px; cursor: pointer;">
-                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: top center; background-repeat: no-repeat; background-image: url('img/Dani.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #f5576c; transition: transform 0.3s ease, filter 0.3s ease;"></div>
+                    <div class="profile-circle mb-3" style="width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background-size: cover; background-position: top center; background-repeat: no-repeat; background-image: url('img/Dani.jpeg'); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid #f5576c; transition: transform 0.3s ease, filter 0.3s ease; animation: pulse-dani 1s infinite;"></div>
                     <h3 class="fw-bold mt-3" style="color: #333;">Dani</h3>
                     <p class="text-muted small" data-i18n="daniDesc">Enseignant d'anglais</p>
-                    <button id="btn-dani-cv" class="btn btn-sm btn-outline-danger mt-2 w-100">Profil & CV</button>
+                    <button id="btn-dani-cv" class="btn btn-sm btn-outline-secondary mt-2 w-100" data-i18n="learnMore">En savoir plus</button>
                 </div>
             </div>
 
@@ -100,40 +144,17 @@
         </div>
     </div>
 
-    <!-- Role Selection Modal -->
-    <div id="role-modal" class="custom-modal" style="display: none;">
-        <div class="modal-content shadow text-center position-relative">
-            <!-- Back Button -->
-            <div class="position-absolute top-0 start-0 m-3">
-                <button id="btn-back-from-role" class="btn btn-outline-secondary fw-bold">← Retour</button>
-            </div>
-            
-            <!-- Language Selector (Top Right) -->
-            <div class="lang-selector position-absolute top-0 end-0 m-3 text-end">
-                <button class="lang-btn btn btn-sm btn-light border shadow-sm" style="font-size: 1.2rem; padding: 2px 8px;">🇫🇷</button>
-                <div class="lang-menu shadow-sm border rounded bg-white mt-1" style="display: none; position: absolute; right: 0; z-index: 1055;">
-                    <div class="lang-option p-2 border-bottom text-start" data-lang="fr" style="cursor:pointer;">🇫🇷 Français</div>
-                    <div class="lang-option p-2 text-start" data-lang="en" style="cursor:pointer;">🇬🇧 English</div>
-                </div>
-            </div>
-            
-            <h2 class="fw-bold mt-5" id="role-title" data-i18n="roleTitle">Bienvenue</h2>
-            <p class="text-muted" id="role-subtitle" data-i18n="roleSubtitle">Veuillez sélectionner votre rôle pour continuer :</p>
-            <div class="d-flex justify-content-center gap-3 mt-4">
-                <button id="btn-guest" class="btn btn-success px-4 py-2" data-i18n="btnGuest">Réservation Invité</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Guest Login Modal -->
     <div id="guest-login-modal" class="custom-modal">
         <div class="modal-content shadow text-center position-relative">
             <button id="btn-back-from-guest-login" class="btn btn-outline-secondary fw-bold position-absolute top-0 start-0 m-3" style="font-size: 0.9rem;">← Retour</button>
             <span class="close-btn" id="close-guest-login" style="right: 15px; top: 10px;">&times;</span>
-            <h2 class="fw-bold mb-4 mt-5" data-i18n="guestLoginTitle">Connexion Invité</h2>
+            <img id="login-teacher-img" src="" class="rounded-circle mx-auto mt-4 shadow-sm" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #198754; display: none;">
+            <h2 class="fw-bold mb-4 mt-3" data-i18n="guestLoginTitle">Connexion Invité</h2>
             <div class="mb-4 text-start">
-                <label class="form-label fw-bold" data-i18n="guestIdLabel">Email ou Numéro de téléphone</label>
-                <input type="text" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email ou téléphone...">
+                <label class="form-label fw-bold" data-i18n="guestIdLabel">Email</label>
+                <input type="email" id="guest-id-input" class="form-control" data-i18n-placeholder="guestIdPlaceholder" placeholder="Entrez votre email...">
+                <small class="text-muted mt-1 d-block" data-i18n="emailImportant">Votre email est indispensable pour vous envoyer la confirmation de votre réservation.</small>
             </div>
             <button id="btn-guest-login" class="btn btn-success w-100 py-2 fw-bold" data-i18n="continueBtn">Continuer</button>
         </div>
@@ -197,7 +218,7 @@
                                     <span class="contact-icon bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-style: normal; font-size: 1.3rem;">TEL</span>
                                 <div class="d-flex flex-column justify-content-center text-start">
                                     <span id="nav-phone-text" class="fw-bold text-dark lh-1 mb-1" style="font-size: 0.95rem;">06 76 10 02 23</span>
-                                    <small id="nav-avail-text" class="text-muted lh-1" style="font-size: 0.8rem;" data-i18n="navAvailability">Disponible pour échanger tous les jours de 9h à 13h</small>
+                                <small id="nav-avail-text" class="text-muted lh-1" style="font-size: 0.8rem;" data-i18n="martineAvailability">Disponible de 8h à 19h pour échanger</small>
                                 </div>
                             </a>
                         </li>
@@ -219,6 +240,14 @@
                 </div>
 
                 <div id="guest-dashboard" style="display:none;">
+                    <!-- Guest Links Section -->
+                    <div id="guest-links-section" class="mb-4" style="display:none;">
+                        <h4 class="fw-bold text-primary border-bottom pb-2 mb-3 d-flex align-items-center gap-2">
+                            <span data-i18n="myLinks">Mes Liens</span>
+                        </h4>
+                        <div id="guest-links-container" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+
                     <h4 class="fw-bold text-success border-bottom pb-2 mb-3 d-flex align-items-center gap-2">
                         <span data-i18n="myRes">Mes Réservations</span>
                         <span id="guest-res-count" class="badge bg-success rounded-pill" style="font-size: 0.9rem;">0</span>
@@ -236,7 +265,10 @@
             <div id="guest-right-panel" class="flex-grow-1" style="min-width: 400px; width: 0;">
                 <div class="week-nav d-flex justify-content-between align-items-center mb-4">
                     <button id="prev-week-btn" class="btn btn-outline-success fw-bold" data-i18n="prevWeek">&lt; Précédent</button>
-                    <h3 id="week-display" class="mb-0 fw-bold"></h3>
+                    <div class="d-flex flex-column flex-sm-row align-items-center gap-2">
+                        <h3 id="week-display" class="mb-0 fw-bold text-center"></h3>
+                        <button id="today-btn" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" data-i18n="todayBtn" style="display: none;">Aujourd'hui</button>
+                    </div>
                     <button id="next-week-btn" class="btn btn-outline-success fw-bold" data-i18n="nextWeek">Suivant &gt;</button>
                 </div>
                 <div class="card shadow-sm border-0 p-3 mb-4 h-100">
@@ -262,9 +294,10 @@
                 </div>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <button id="btn-change-profile" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-info">🔄 <span data-i18n="changeProfileBtn">Changer de profil</span></button>
-                <button id="btn-block-time" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-secondary">🗓️ <span data-i18n="blockTimeBtn">Bloquer un créneau</span></button>
-                <button id="btn-logout" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-danger">🚪 <span data-i18n="logoutBtn">Déconnexion</span></button>
+                <button id="btn-change-profile" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-info"><span data-i18n="changeProfileBtn">Changer de profil</span></button>
+                <button id="btn-client-db" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-primary"><i class="bi bi-people me-1"></i> <span data-i18n="clientDbBtn">Base de données Clients</span></button>
+                <button id="btn-block-time" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-secondary"><span data-i18n="blockTimeBtn">Bloquer un créneau</span></button>
+                <button id="btn-logout" class="btn btn-light rounded-pill border shadow-sm fw-bold px-3 py-2 text-danger"><i class="bi bi-box-arrow-right me-1"></i> <span data-i18n="logoutBtn">Déconnexion</span></button>
             </div>
         </div>
         
@@ -332,7 +365,10 @@
                     <h4 class="mb-4 fw-bold border-bottom pb-2" data-i18n="availMap">Carte des disponibilités</h4>
                     <div class="week-nav d-flex justify-content-between align-items-center mb-3">
                         <button id="admin-prev-week-btn" class="btn btn-outline-success btn-sm fw-bold" data-i18n="prevWeekAdmin">&lt; Semaine Précédente</button>
-                        <h5 id="admin-week-display" class="mb-0 fw-bold"></h5>
+                        <div class="d-flex flex-column flex-sm-row align-items-center gap-2">
+                            <h5 id="admin-week-display" class="mb-0 fw-bold text-center"></h5>
+                            <button id="admin-today-btn" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" data-i18n="todayBtn" style="display: none;">Aujourd'hui</button>
+                        </div>
                         <button id="admin-next-week-btn" class="btn btn-outline-success btn-sm fw-bold" data-i18n="nextWeekAdmin">Semaine Suivante &gt;</button>
                     </div>
                     <div id="admin-schedule-grid" class="schedule-grid"></div>
@@ -365,6 +401,10 @@
                         <option value="24" data-i18n="w24">24 Semaines (6 Mois)</option>
                     </select>
                 </div>
+                <div id="saved-profiles-group" class="mb-3 border-bottom pb-3" style="display: none;">
+                    <label class="form-label fw-bold text-primary" data-i18n="savedProfiles">Profils récents</label>
+                    <select id="saved-profiles-select" class="form-select border-primary shadow-sm bg-light"></select>
+                </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label for="fname" class="form-label fw-bold" data-i18n="fname">Prénom *</label>
@@ -378,10 +418,11 @@
                 <div class="mb-3">
                     <label for="email" class="form-label fw-bold" data-i18n="email">Email *</label>
                     <input type="email" id="email" class="form-control" required>
+                    <small class="text-muted mt-1 d-block" data-i18n="emailImportant">Votre email est indispensable pour vous envoyer la confirmation de votre réservation.</small>
                 </div>
                 <div class="mb-3">
-                    <label for="phone" class="form-label fw-bold" data-i18n="phone">Numéro de téléphone *</label>
-                    <input type="tel" id="phone" class="form-control" required>
+                    <label for="phone" class="form-label fw-bold" data-i18n="phone">Téléphone (Optionnel)</label>
+                    <input type="tel" id="phone" class="form-control">
                 </div>
                 <div class="mb-4">
                     <label for="message" class="form-label fw-bold" data-i18n="msgOpt">Message (Optionnel)</label>
@@ -406,7 +447,7 @@
                 </div>
                 <div class="d-flex gap-2 mb-3">
                     <input type="email" id="edit-email" class="form-control form-control-sm" data-i18n-placeholder="emailPlaceholder" placeholder="Email" required>
-                    <input type="tel" id="edit-phone" class="form-control form-control-sm" data-i18n-placeholder="phonePlaceholder" placeholder="Téléphone" required>
+                    <input type="tel" id="edit-phone" class="form-control form-control-sm" data-i18n-placeholder="phonePlaceholder" placeholder="Téléphone">
                 </div>
                 <label class="small fw-bold mb-1" data-i18n="resType">Type de réservation</label>
                 <select id="edit-recurring" class="form-select form-select-sm mb-2">
@@ -430,6 +471,10 @@
                     <label class="small fw-bold mb-1 text-warning" data-i18n="adminNote">Note Admin (Privée)</label>
                     <textarea id="edit-adminnote" class="form-control form-control-sm border-warning" rows="2" data-i18n-placeholder="adminNote" placeholder="Note Admin (Privée)"></textarea>
                 </div>
+                <div id="edit-admin-reply-group" class="mb-3">
+                    <label class="small fw-bold mb-1 text-info" data-i18n="adminReply">Message pour le client</label>
+                    <textarea id="edit-adminreply" class="form-control form-control-sm border-info" rows="2" data-i18n-placeholder="adminReplyPlaceholder" placeholder="Ce message sera visible par le client..."></textarea>
+                </div>
                 <button type="submit" class="btn btn-primary w-100 fw-bold py-2" data-i18n="saveChanges">Enregistrer</button>
             </form>
         </div>
@@ -442,6 +487,19 @@
             <h3 class="fw-bold mb-3" id="block-modal-title" data-i18n="blockTimeVacation">Bloquer un créneau / Vacances</h3>
             <form id="block-form">
                 <input type="hidden" id="block-index">
+                <div class="mb-3">
+                    <label class="form-label fw-bold mb-1" data-i18n="blockType">Type de blocage</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="block-type" id="block-continuous" value="one-time" checked>
+                            <label class="form-check-label" for="block-continuous" data-i18n="blockContinuous">Période continue</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="block-type" id="block-daily" value="daily">
+                            <label class="form-check-label" for="block-daily" data-i18n="blockDaily">Heures récurrentes</label>
+                        </div>
+                    </div>
+                </div>
                 <div class="row mb-3">
                     <div class="col-6">
                         <label class="form-label fw-bold mb-1" data-i18n="startDate">Date de début</label>
@@ -480,6 +538,27 @@
         </div>
     </div>
 
+    <!-- Add Link Modal -->
+    <div id="add-link-modal" class="custom-modal" style="z-index: 1050; display: none;">
+        <div class="modal-content shadow text-start" style="max-width: 400px;">
+            <span class="close-btn" id="close-link-modal">&times;</span>
+            <h3 class="fw-bold mb-3">Ajouter un lien étudiant</h3>
+            <form id="add-link-form">
+                <input type="hidden" id="link-student-email">
+                <input type="hidden" id="edit-link-index">
+                <div class="mb-3">
+                    <label class="form-label fw-bold mb-1">Nom du lien</label>
+                    <input type="text" id="link-name" class="form-control form-control-sm" placeholder="ex: Google Docs, Lien d'appel..." required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold mb-1">URL</label>
+                    <input type="url" id="link-url" class="form-control form-control-sm" placeholder="https://..." required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Enregistrer le lien</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Generic Custom Dialog Modal -->
     <div id="custom-dialog-modal" class="custom-modal" style="z-index: 9999;">
         <div class="modal-content shadow text-center" style="max-width: 400px; padding: 25px;">
@@ -487,6 +566,53 @@
             <p id="dialog-message" class="text-muted mb-4"></p>
             <div id="dialog-buttons" class="d-flex justify-content-center flex-column gap-2">
                 <!-- Buttons will be injected here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Client DB Modal -->
+    <div id="client-db-modal" class="custom-modal" style="display: none; z-index: 1050;">
+        <div class="modal-content shadow text-start" style="max-width: 900px; width: 95%; max-height: 90vh;">
+            <span class="close-btn" id="close-client-db-modal">&times;</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4">
+                <h3 class="fw-bold text-primary mb-0" data-i18n="clientDbTitle">Base de données Clients</h3>
+                <button id="btn-global-summary" class="btn btn-success btn-sm rounded-pill shadow-sm fw-bold px-3 mt-3 mt-sm-0"><i class="bi bi-file-earmark-bar-graph me-1"></i> <span data-i18n="globalSummaryBtn">Résumé Mensuel</span></button>
+            </div>
+            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Nom</th>
+                            <th data-i18n="contactInfo">Contact</th>
+                            <th class="text-center" data-i18n="totalRes">Réservations</th>
+                            <th data-i18n="lastRes">Dernière activité</th>
+                            <th class="text-center no-print">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-db-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Summary Modal -->
+    <div id="monthly-summary-modal" class="custom-modal" style="display: none; z-index: 1060;">
+        <div class="modal-content shadow text-start" style="max-width: 600px; width: 95%;">
+            <span class="close-btn no-print" id="close-summary-modal">&times;</span>
+            <h3 class="fw-bold mb-3 text-primary" id="summary-modal-title" data-i18n="monthlySummary">Résumé mensuel</h3>
+            <div class="mb-4 no-print d-flex gap-3 flex-wrap">
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold" data-i18n="selectMonth">Sélectionner un mois</label>
+                    <input type="month" id="summary-month-picker" class="form-control">
+                </div>
+            </div>
+            <div id="summary-results" class="mb-4" style="max-height: 40vh; overflow-y: auto;"></div>
+            <div class="d-flex gap-2 no-print">
+                <button type="button" class="btn btn-primary flex-grow-1 fw-bold py-2" id="download-summary-btn" onclick="window.print()"><i class="bi bi-printer me-2"></i> <span data-i18n="printPdf">Imprimer / PDF</span></button>
+                <button type="button" class="btn btn-success flex-grow-1 fw-bold py-2" id="email-summary-btn" style="display: none;"><i class="bi bi-envelope-paper me-2"></i> <span data-i18n="sendEmailBtn">Envoyer par Email</span></button>
+            </div>
+            <div class="d-flex gap-2 no-print mt-2">
+                <button type="button" class="btn btn-outline-success flex-grow-1 fw-bold py-2" id="csv-summary-btn"><i class="bi bi-file-earmark-spreadsheet me-2"></i> <span data-i18n="downloadCsv">Télécharger CSV</span></button>
             </div>
         </div>
     </div>
@@ -499,8 +625,8 @@
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-3 mb-4 no-print mt-2">
                 <h3 class="fw-bold mb-0">Profil & CV - Martine</h3>
                 <div class="mt-3 mt-sm-0 d-flex gap-2">
-                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()">🖨️ Imprimer</button>
-                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1dX0SJSEs0SP9DHlQ-SFY6fAJDfkcIaeF?usp=sharing">🔗 Partager</button>
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()"><i class="bi bi-printer me-1"></i> Imprimer</button>
+                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1dX0SJSEs0SP9DHlQ-SFY6fAJDfkcIaeF?usp=sharing"><i class="bi bi-share me-1"></i> Partager</button>
                 </div>
             </div>
             <div class="cv-body text-start">
@@ -508,7 +634,7 @@
                     <img src="img/Martine.jpeg" class="rounded-circle mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover;">
                     <h2 class="fw-bold text-primary">MARTINE JUILLAN</h2>
                     <h5 class="text-muted">Enseignante d’anglais pour enfants et adultes dans le privé</h5>
-                    <p class="mt-3">Enseignante d’anglais, je souhaite me reconvertir dans l’administration, où je pourrai appliquer pleinement mes capacités rédactionnelles, au sein d’une équipe soudée, avec des missions proposées variées. J’aimerais retravailler pour l’Université Grenoble Alpes, un établissement que je connais fort bien.</p>
+                    <p class="mt-3">Enseignante d’anglais passionnée, j'ai à cœur d'accompagner mes élèves dans leur apprentissage avec bienveillance et dynamisme. Forte de mes divers centres d'intérêt, notamment pour la nature, le sport et la littérature, j'aime créer des ponts entre l'anglais et vos passions. Mon objectif est de vous donner les outils linguistiques nécessaires pour concrétiser vos projets personnels et professionnels.</p>
                 </div>
                 
                 <div class="row mb-4 bg-light p-3 rounded">
@@ -519,23 +645,23 @@
 
                 <h4 class="fw-bold text-primary border-bottom pb-2">EXPÉRIENCES PROFESSIONNELLES</h4>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - Les Petits Bilingues (Grenoble)</strong><span class="text-muted small">2021 - Présent</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - École de langues</strong></div>
                         <p class="mb-0 small">➔ Cours en privé pour adultes, Cours en privé pour les 8 à 17 ans, et Cours en groupe pour les 3 à 16 ans.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - DLST à l’Université Grenoble Alpes (UGA)</strong><span class="text-muted small">février à mai 2024</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante d’anglais - Université (Département Sciences et Technologies)</strong></div>
                         <p class="mb-0 small">➔ Enseignement de l’anglais pour les étudiants en L1 de divers parcours scientifiques, axés sur la biologie, la technologie et la biochimie. Assurer le suivi des étudiants sur la plateforme Moodle.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Traductrice et Scénariste pédagogique (Noun Town)</strong><span class="text-muted small">avril à mai 2023</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Traductrice et Scénariste pédagogique - Start-up éducative</strong></div>
                         <p class="mb-0 small">➔ L'élaboration de supports de formation efficaces à travers l'utilisation de personnages fictifs pour créer des scénarios qui peuvent être appliqués dans des situations réelles en anglais.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante de traduction - LEA à l’Université Grenoble Alpes (UGA)</strong><span class="text-muted small">février à mai 2023</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Enseignante de traduction - Université (Département Langues)</strong></div>
                         <p class="mb-0 small">➔ Enseignement de traduction de presse, de l’anglais vers le français pour les étudiants en L2 Langues Étrangères Appliquées.</p></li>
                 </ul>
 
                 <h4 class="fw-bold text-primary border-bottom pb-2">FORMATION</h4>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Certification de Cambridge CELTA (Lyon)</strong><span class="text-muted small">nov. à déc. 2022</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Certification d'enseignement de l'anglais (CELTA)</strong></div>
                         <p class="mb-0 small">➔ Pour enseigner l’anglais, notamment aux adultes. L’équivalent du DAEFLE en anglais.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais (UGA)</strong><span class="text-muted small">2017 - 2021</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais - Université</strong></div>
                         <p class="mb-0 small">➔ Développement des compétences en langues, cultures, traduction, analyse, et organisation, préparant à des carrières dans l’enseignement, le patrimoine, et la communication en anglais.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Lycée Horticole de St Ismier - Bac STAV</strong><span class="text-muted small">2014 - 2017</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat STAV - Lycée Agricole</strong></div>
                         <p class="mb-0 small">➔ Baccalauréat en Sciences, Technologies, de l’Agronomie et du Vivant.</p></li>
                 </ul>
 
@@ -570,8 +696,8 @@
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-3 mb-4 no-print mt-2">
                 <h3 class="fw-bold mb-0">Profil & CV - Dani</h3>
                 <div class="mt-3 mt-sm-0 d-flex gap-2">
-                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()">🖨️ Imprimer</button>
-                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1O7YY3HdUIqphC8iI3-B6ROWp1ClH7SLh?usp=sharing">🔗 Partager</button>
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="window.print()"><i class="bi bi-printer me-1"></i> Imprimer</button>
+                    <button class="btn btn-outline-success btn-sm share-btn" data-url="https://drive.google.com/drive/folders/1O7YY3HdUIqphC8iI3-B6ROWp1ClH7SLh?usp=sharing"><i class="bi bi-share me-1"></i> Partager</button>
                 </div>
             </div>
             <div class="cv-body text-start">
@@ -579,7 +705,7 @@
                     <img src="img/Dani.jpeg" class="rounded-circle mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover; object-position: top;">
                     <h2 class="fw-bold text-danger">MOHAMED ALI CHEMSEDDINE ROUABAH</h2>
                     <h5 class="text-muted">Master 2 Géomatique et Analyse Spatiale (GEOMAS) - Enseignant d'Anglais</h5>
-                    <p class="mt-3">Futur diplômé en Géomatique, à la recherche d’un stage de 4 - 6 mois à partir d’avril 2026. Spécialisé dans l’automatisation et le développement d’outils géomatiques de géovisualisation, je souhaite mettre mes compétences en géographie et programmation au service de vos projets spatiaux.</p>
+                    <p class="mt-3">Professeur d'anglais passionné par la transmission des savoirs et doté d'un profil polyvalent mêlant langues, géographie et nouvelles technologies. J'aime m'appuyer sur ma diversité de compétences (sciences, programmation, culture) pour proposer un accompagnement sur mesure. Mon but est de vous aider à atteindre vos objectifs et à mener à bien vos projets personnels avec confiance.</p>
                 </div>
                 
                 <div class="row mb-4 bg-light p-3 rounded">
@@ -590,28 +716,28 @@
 
                 <h4 class="fw-bold text-danger border-bottom pb-2">EXPÉRIENCE PROFESSIONNELLE</h4>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 5 mois - Laboratoire PACTE</strong><span class="text-muted small">Avril 2025</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 5 mois - Laboratoire de Recherche en Sciences Sociales</strong></div>
                         <p class="mb-0 small">➔ Analyse cinématique des glaciers rocheux (LiDAR/IMCORR) et automatisation de traitements géospatiaux en Python et QGIS.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 3 mois - Digitalisation de Cartes Géomorphologiques (IUGA)</strong><span class="text-muted small">Janvier 2024</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Stage 3 mois - Digitalisation de Cartes Géomorphologiques (Institut d'Urbanisme et de Géographie)</strong></div>
                         <p class="mb-0 small">➔ Digitalisation des cartes géomorphologiques de la région de la Haute Vallée de l’Ubaye en utilisant le logiciel QGIS.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Professeur d'Anglais</strong><span class="text-muted small">2019 - Présent</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Professeur d'Anglais</strong></div>
                         <p class="mb-0 small">➔ Soutien et accompagnement linguistique pour des apprenants de tous niveaux (A0-C2).</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Employé polyvalent (Restauration et Vente)</strong><span class="text-muted small">2016 - 2019</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Employé polyvalent (Restauration et Vente)</strong></div>
                         <p class="mb-0 small">➔ Diverses expériences (service, accueil client, vente, gestion des stocks).</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Bénévole 2 mois - Responsable d’Interprétation (Maison des Associations)</strong><span class="text-muted small">Septembre 2016</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Bénévole 2 mois - Responsable d’Interprétation</strong></div>
                         <p class="mb-0 small">➔ Responsable de l’interprétation pour les conseillers, gestion des fichiers.</p></li>
                 </ul>
 
                 <h4 class="fw-bold text-danger border-bottom pb-2">FORMATION</h4>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Master - Géomatique et Analyse Spatiale (GEOMAS) (IUGA)</strong><span class="text-muted small">2024 - Présent</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Master - Géomatique et Analyse Spatiale</strong></div>
                         <p class="mb-0 small">➔ Développement & web mapping, data & automatisation, outils SIG, conception.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence - Géographie et Aménagement - Environnement (IUGA)</strong><span class="text-muted small">2021 - 2024</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence - Géographie et Aménagement</strong></div>
                         <p class="mb-0 small">➔ Analyse spatiale, statistique, SIG, cartographie, hydrologie, géomorphologie et télédétection.</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais (UGA)</strong><span class="text-muted small">2017 - 2021</span></div>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Licence LLCER Anglais - Université</strong></div>
                         <p class="mb-0 small">➔ Maîtrise théorique (analyse des textes, culture) + compétences appliquées (traduction, interprétation, enseignement).</p></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat L (Grenoble)</strong><span class="text-muted small">2016 - 2017</span></div></li>
-                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat S (Algérie)</strong><span class="text-muted small">2012 - 2015</span></div></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat Littéraire</strong></div></li>
+                    <li class="mb-3"><div class="d-flex justify-content-between"><strong>Baccalauréat Scientifique</strong></div></li>
                 </ul>
 
                 <h4 class="fw-bold text-danger border-bottom pb-2">COMPÉTENCES</h4>

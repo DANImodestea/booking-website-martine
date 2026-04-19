@@ -12,7 +12,19 @@ function initModal(onSubmitCallback) {
     // Fonction pour ouvrir la modale (sera appelée depuis main.js)
     const openModal = (slotElements) => {
         currentSlots = slotElements;
-        const slotsText = slotElements.map(s => `${s.dataset.day} at ${s.dataset.time}`).join('<br>');
+        
+        const getDisplayTime = (timeStr) => {
+            if (window.currentLang !== 'fr') return timeStr;
+            if (!timeStr || (!timeStr.includes('AM') && !timeStr.includes('PM'))) return timeStr;
+            const [time, modifier] = timeStr.split(' ');
+            let [h, m] = time.split(':');
+            h = parseInt(h, 10);
+            if (modifier === 'PM' && h < 12) h += 12;
+            if (modifier === 'AM' && h === 12) h = 0;
+            return `${h.toString().padStart(2, '0')}h${m}`;
+        };
+
+        const slotsText = slotElements.map(s => `${s.dataset.day} ${window.currentLang === 'fr' ? 'à' : 'at'} ${getDisplayTime(s.dataset.time)}`).join('<br>');
         timeDisplay.innerHTML = `${window.t('youAreReq')}<br><strong>${slotsText}</strong>`;
         
         // Clear previous entries
@@ -27,6 +39,33 @@ function initModal(onSubmitCallback) {
         if (currentUser && currentUser !== 'admin') {
             if (currentUser.includes('@')) document.getElementById('email').value = currentUser;
             else document.getElementById('phone').value = currentUser;
+            
+            // Load saved profiles linked to this login
+            let savedProfiles = JSON.parse(localStorage.getItem('savedGuestProfiles')) || [];
+            savedProfiles = savedProfiles.filter(p => p.currentUser === currentUser);
+            const savedProfilesGroup = document.getElementById('saved-profiles-group');
+            const savedProfilesSelect = document.getElementById('saved-profiles-select');
+            
+            if (savedProfilesGroup && savedProfilesSelect) {
+                if (savedProfiles.length > 0) {
+                    savedProfilesSelect.innerHTML = `<option value="">${window.t('selectProfileOpt') || '-- Sélectionner un profil récent --'}</option>` +
+                        savedProfiles.map((p, i) => `<option value="${i}">${p.fname} ${p.lname}</option>`).join('');
+                    savedProfilesGroup.style.display = 'block';
+                    savedProfilesSelect.onchange = (e) => {
+                        if(e.target.value !== "") {
+                            const sel = savedProfiles[e.target.value];
+                            document.getElementById('fname').value = sel.fname || '';
+                            document.getElementById('lname').value = sel.lname || '';
+                            document.getElementById('phone').value = sel.phone || '';
+                        } else {
+                            document.getElementById('fname').value = '';
+                            document.getElementById('lname').value = '';
+                        }
+                    };
+                } else {
+                    savedProfilesGroup.style.display = 'none';
+                }
+            }
         }
 
         if (weeksGroup) {
@@ -56,12 +95,9 @@ function initModal(onSubmitCallback) {
         
         const recurringOption = document.querySelector('input[name="recurring"]:checked').value;
         
-        let endDate = null;
+        let numWeeks = 1;
         if (recurringOption === 'weekly' && currentSlots.length > 0) {
-            const numWeeks = parseInt(document.getElementById('num-weeks').value, 10) || 4;
-            const firstDate = new Date(currentSlots[0].dataset.fullDate);
-            firstDate.setDate(firstDate.getDate() + (numWeeks * 7));
-            endDate = firstDate.toISOString().split('T')[0];
+            numWeeks = parseInt(document.getElementById('num-weeks').value, 10) || 4;
         }
 
         const clientData = {
@@ -71,8 +107,20 @@ function initModal(onSubmitCallback) {
             phone: document.getElementById('phone').value,
             message: document.getElementById('message').value,
             recurring: recurringOption,
-            endDate: endDate
+            numWeeks: numWeeks
         };
+        
+        // Save profile to memory for future auto-fill
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser && currentUser !== 'admin') {
+            const profileToSave = { currentUser, fname: clientData.fname, lname: clientData.lname, email: clientData.email, phone: clientData.phone };
+            let allProfiles = JSON.parse(localStorage.getItem('savedGuestProfiles')) || [];
+            const exists = allProfiles.find(p => p.currentUser === currentUser && p.fname === profileToSave.fname && p.lname === profileToSave.lname);
+            if (!exists) {
+                allProfiles.push(profileToSave);
+                localStorage.setItem('savedGuestProfiles', JSON.stringify(allProfiles));
+            }
+        }
 
         // Transmet les données et le slot sélectionné au chef d'orchestre
         onSubmitCallback(clientData, currentSlots);
