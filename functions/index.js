@@ -3,7 +3,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const cron = require('node-cron');
 const path = require('path');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
@@ -188,117 +187,6 @@ const reservationSchema = new mongoose.Schema({
 });
 
 const Reservation = mongoose.model('Reservation', reservationSchema);
-
-// --- AUTOMATED REMINDERS (Runs every 15 minutes) ---
-cron.schedule('*/15 * * * *', async () => {
-    console.log('\n[JOB] [CRON] Automated reminders task started');
-    try {
-        const reservations = await Reservation.find({ status: 'approved' });
-        let modifiedCount = 0;
-        
-        for (let res of reservations) {
-            let resUpdated = false;
-            
-            // 1. Check for 6-hour class reminders
-            if (Array.isArray(res.slots)) {
-                for (let slot of res.slots) {
-                    if (slot.reminderSent || !slot.fullDate) continue;
-                    
-                    const [timeStr, modifier] = slot.time.split(' ');
-                    let [h, m] = timeStr.split(':');
-                    h = parseInt(h, 10);
-                    if (modifier === 'PM' && h < 12) h += 12;
-                    if (modifier === 'AM' && h === 12) h = 0;
-                    
-                    const exactDate = new Date(slot.fullDate);
-                    const classTimeMs = exactDate.getTime() + (h * 60 + parseInt(m, 10)) * 60 * 1000;
-                    const diffMs = classTimeMs - Date.now();
-                    
-                    // If class is within the next 6 hours (and in the future)
-                    if (diffMs > 0 && diffMs <= 6 * 60 * 60 * 1000) {
-                        const adminEmail = res.adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
-                        const transporter = transporters[res.adminProfile] || transporters['Dani'];
-                        
-                        if (res.email) {
-                            const mailOptions = {
-                                from: `"Réservation ${res.adminProfile}" <${adminEmail}>`,
-                                to: res.email,
-                                subject: `Rappel : Votre cours est dans 6 heures ! / Reminder: Class in 6 hours!`,
-                                html: `
-                                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
-                                        <h2 style="color: #0dcaf0; border-bottom: 2px solid #0dcaf0; padding-bottom: 10px;">Rappel de cours / Class Reminder</h2>
-                                        <p>Bonjour <strong>${res.fname}</strong>,</p>
-                                        <p>Ceci est un rappel que votre cours avec <strong>${res.adminProfile}</strong> commencera dans environ 6 heures.</p>
-                                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
-                                            <p style="margin: 0;"><strong>Date & Heure :</strong> ${slot.day} à ${slot.time}</p>
-                                        </div>
-                                        <p>À très vite !</p>
-                                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-                                        <p style="color: #666; font-size: 14px;"><em>Hello <strong>${res.fname}</strong>, this is a reminder that your class with <strong>${res.adminProfile}</strong> will start in about 6 hours.</em></p>
-                                    </div>
-                                `
-                            };
-                            transporter.sendMail(mailOptions, (err) => {
-                                if (err) console.error('[ERR] [EMAIL] Reminder failed for:', res.email, err.message);
-                                else console.log('[OK] [EMAIL] 6-hour reminder sent to:', res.email);
-                            });
-                        }
-                        slot.reminderSent = true;
-                        resUpdated = true;
-                    }
-                }
-            }
-            
-            // 2. Check for 1-week extension offer on multi-week reservations
-            if (res.recurring === 'weekly' && res.endDate && !res.extensionOffered) {
-                const endDateMs = new Date(`${res.endDate}T23:59:59`).getTime();
-                const diffEndMs = endDateMs - Date.now();
-                
-                // If ending within 7 days
-                if (diffEndMs > 0 && diffEndMs <= 7 * 24 * 60 * 60 * 1000) {
-                    const adminEmail = res.adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
-                    const transporter = transporters[res.adminProfile] || transporters['Dani'];
-                    
-                    if (res.email) {
-                        const mailOptions = {
-                            from: `"Réservation ${res.adminProfile}" <${adminEmail}>`,
-                            to: res.email,
-                            subject: `Votre réservation se termine bientôt / Reservation ending soon`,
-                            html: `
-                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
-                                    <h2 style="color: #ffc107; border-bottom: 2px solid #ffc107; padding-bottom: 10px;">Renouvellement / Renewal</h2>
-                                    <p>Bonjour <strong>${res.fname}</strong>,</p>
-                                    <p>Votre réservation hebdomadaire avec <strong>${res.adminProfile}</strong> se termine dans une semaine (le <strong>${res.endDate}</strong>).</p>
-                                    <p>Souhaitez-vous la prolonger ? Si oui, veuillez vous connecter sur notre site et nous le faire savoir, ou réservez directement de nouveaux créneaux !</p>
-                                    <p><a href="https://jr-english.onrender.com/" style="color: #fff; background-color: #198754; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">Accéder au site</a></p>
-                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-                                    <p style="color: #666; font-size: 14px;"><em>Hello <strong>${res.fname}</strong>, your weekly reservation is ending in one week. Would you like to extend it? Please log in to let us know!</em></p>
-                                </div>
-                            `
-                        };
-                        transporter.sendMail(mailOptions, (err) => {
-                            if (err) console.error('[ERR] [EMAIL] Extension offer failed for:', res.email, err.message);
-                            else console.log('[OK] [EMAIL] 1-week extension offer sent to:', res.email);
-                        });
-                    }
-                    res.extensionOffered = true;
-                    resUpdated = true;
-                }
-            }
-            
-            if (resUpdated) {
-                res.markModified('slots');
-                await res.save();
-                modifiedCount++;
-            }
-        }
-        if (modifiedCount > 0) {
-            console.log(`[OK] [CRON] Updated ${modifiedCount} reservations with sent reminders.`);
-        }
-    } catch (err) {
-        console.error('[ERR] [CRON] Automated reminders error:', err.message);
-    }
-});
 
 // --- API ROUTES ---
 
