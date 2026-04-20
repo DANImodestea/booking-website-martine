@@ -1,12 +1,14 @@
 const functions = require('firebase-functions');
+const admin = require('firebase-admin');
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const cron = require('node-cron');
 const path = require('path');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+
+admin.initializeApp();
+const db = admin.firestore();
 
 const app = express();
 
@@ -35,77 +37,6 @@ const transporters = {
         }
     })
 };
-
-// Connect to MongoDB
-console.log('\n[INFO] [STARTUP] Starting MongoDB connection process...');
-const DB_URI = process.env.MONGO_URI || 'mongodb://kendanine8_db_user:Z2nf3DiWPb04dDHb@cluster0.svjjckc.mongodb.net:27017/bookingApp?retryWrites=true&w=majority';
-console.log('[INFO] [STARTUP] DB_URI configured:', DB_URI.substring(0, 50) + '...');
-
-mongoose.connect(DB_URI, {
-    family: 4, // 👈 FORCES IPv4: Bypasses the "querySrv ECONNREFUSED" network bug entirely!
-    serverSelectionTimeoutMS: 30000, // Increased from 10000
-    socketTimeoutMS: 45000,
-    retryWrites: true,
-    authSource: 'admin'
-})
-    .then(() => {
-        console.log('[OK] [MONGODB] Connected to MongoDB Database successfully!');
-        console.log('[NET] [MONGODB] Connection state:', mongoose.connection.readyState);
-        
-        // Auto-patch old reservations missing a unique ID
-        (async () => {
-            try {
-                const missingIdRes = await Reservation.find({ resId: { $exists: false } });
-                for (let r of missingIdRes) {
-                    if (!r.adminProfile) r.adminProfile = 'Martine'; // Legacy fallback
-                    r.resId = generateResId();
-                    await r.save();
-                }
-            } catch (err) {
-                console.error('[ERR] [DB] Failed to auto-patch missing IDs:', err.message);
-            }
-        })();
-        
-        // Initialize Clients from existing reservations automatically
-        (async () => {
-            try {
-                const clientCount = await Client.countDocuments();
-                if (clientCount === 0) {
-                    console.log('[INFO] [DB] Populating Client database from existing reservations...');
-                    const allRes = await Reservation.find();
-                    for (let r of allRes) {
-                        const q = r.email ? { email: r.email } : (r.phone ? { phone: r.phone } : null);
-                        const adminProf = r.adminProfile || 'Martine'; // Legacy fallback
-                        if (q) {
-                            await Client.findOneAndUpdate({ ...q, adminProfile: adminProf },
-                                { $set: { fname: r.fname, lname: r.lname, adminProfile: adminProf, verified: true }, $inc: { totalReservations: 1 }, $max: { lastActive: r.createdAt } },
-                                { upsert: true });
-                        }
-                    }
-                    console.log('[OK] [DB] Client database populated.');
-                }
-            } catch (err) {
-                console.error('[ERR] [DB] Failed to initialize clients:', err.message);
-            }
-        })();
-    })
-    .catch(err => {
-        console.error('[ERR] [MONGODB] MongoDB connection error:', err.message);
-        console.error('[ERR] [MONGODB] Full error stack:', err.stack);
-        console.error('[ERR] [MONGODB] Connection code:', err.code);
-        if (err.message.includes('querySrv ECONNREFUSED')) {
-            console.log('\n[HINT] TIP: Your internet provider or router is blocking MongoDB SRV DNS lookups.\n[HINT] FIX: Change your computer DNS to 8.8.8.8 (Google DNS) OR use the legacy connection string from your Atlas dashboard.\n');
-        }
-    });
-
-// MongoDB Connection Event Listeners for Detailed Debugging
-mongoose.connection.on('connecting', () => console.log('[WAIT] [MONGODB] Attempting to connect...'));
-mongoose.connection.on('connected', () => console.log('[OK] [MONGODB] Connected!'));
-mongoose.connection.on('error', (err) => console.error('[ERR] [MONGODB] Error event:', err.message, '\nFull error:', err));
-mongoose.connection.on('disconnecting', () => console.log('[WARN] [MONGODB] Disconnecting...'));
-mongoose.connection.on('disconnected', () => console.log('[HALT] [MONGODB] Disconnected from MongoDB!'));
-mongoose.connection.on('reconnected', () => console.log('[SYNC] [MONGODB] Reconnected after disconnection!'));
-mongoose.connection.on('reconnectFailed', (err) => console.error('[ERR] [MONGODB] Reconnection failed:', err.message));
 
 // Helper for robust date formatting in Node environments missing full ICU
 const getParisFullDate = (isoString, lang) => {
@@ -141,165 +72,6 @@ function generateResId() {
     return result;
 }
 
-// Define the Permanent Client Database Schema
-const clientSchema = new mongoose.Schema({
-    email: { type: String, default: '' },
-    phone: { type: String, default: '' },
-    fname: { type: String, default: '' },
-    lname: { type: String, default: '' },
-    adminProfile: { type: String, required: true },
-    totalReservations: { type: Number, default: 0 },
-    lastActive: { type: Date, default: Date.now },
-    verified: { type: Boolean, default: false }, // 👈 NEW
-    verificationCode: { type: String, default: '' }, // 👈 NEW
-    codeExpires: { type: Date, default: null }, // 👈 NEW
-    createdAt: { type: Date, default: Date.now }
-});
-const Client = mongoose.model('Client', clientSchema);
-
-// Define the Reservation Database Schema
-const reservationSchema = new mongoose.Schema({
-    adminProfile: { type: String, required: true, enum: ['Martine', 'Dani'] }, // 👈 NEW: Track which admin
-    resId: { type: String, default: generateResId, unique: true }, // 👈 NEW: Unique tracking ID
-    fname: { type: String, required: true },
-    lname: { type: String, required: true },
-    email: { type: String, default: '' },
-    phone: { type: String, default: '' },
-    message: { type: String, default: '' },
-    adminNote: { type: String, default: '' },
-    adminReply: { type: String, default: '' },
-    classDone: { type: Boolean, default: false }, // 👈 NEW: Track if class was completed
-    recurring: { type: String, default: 'one-time' },
-    status: { type: String, default: 'pending' },
-    startDate: { type: String, default: null },
-    startTime: { type: String, default: null },
-    endDate: { type: String, default: null },
-    endTime: { type: String, default: null },
-    extensionOffered: { type: Boolean, default: false },
-    slots: [{
-        day: String,
-        time: String,
-        fullDate: String,
-        reminderSent: { type: Boolean, default: false },
-        classDone: { type: Boolean, default: false } // 👈 NEW: Track individual slots
-    }],
-    studentLinks: { type: Array, default: [] },
-    createdAt: { type: Date, default: Date.now }
-});
-
-const Reservation = mongoose.model('Reservation', reservationSchema);
-
-// --- AUTOMATED REMINDERS (Runs every 15 minutes) ---
-cron.schedule('*/15 * * * *', async () => {
-    console.log('\n[JOB] [CRON] Automated reminders task started');
-    try {
-        const reservations = await Reservation.find({ status: 'approved' });
-        let modifiedCount = 0;
-        
-        for (let res of reservations) {
-            let resUpdated = false;
-            
-            // 1. Check for 6-hour class reminders
-            if (Array.isArray(res.slots)) {
-                for (let slot of res.slots) {
-                    if (slot.reminderSent || !slot.fullDate) continue;
-                    
-                    const [timeStr, modifier] = slot.time.split(' ');
-                    let [h, m] = timeStr.split(':');
-                    h = parseInt(h, 10);
-                    if (modifier === 'PM' && h < 12) h += 12;
-                    if (modifier === 'AM' && h === 12) h = 0;
-                    
-                    const exactDate = new Date(slot.fullDate);
-                    const classTimeMs = exactDate.getTime() + (h * 60 + parseInt(m, 10)) * 60 * 1000;
-                    const diffMs = classTimeMs - Date.now();
-                    
-                    // If class is within the next 6 hours (and in the future)
-                    if (diffMs > 0 && diffMs <= 6 * 60 * 60 * 1000) {
-                        const adminEmail = res.adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
-                        const transporter = transporters[res.adminProfile] || transporters['Dani'];
-                        
-                        if (res.email) {
-                            const mailOptions = {
-                                from: `"Réservation ${res.adminProfile}" <${adminEmail}>`,
-                                to: res.email,
-                                subject: `Rappel : Votre cours est dans 6 heures ! / Reminder: Class in 6 hours!`,
-                                html: `
-                                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
-                                        <h2 style="color: #0dcaf0; border-bottom: 2px solid #0dcaf0; padding-bottom: 10px;">Rappel de cours / Class Reminder</h2>
-                                        <p>Bonjour <strong>${res.fname}</strong>,</p>
-                                        <p>Ceci est un rappel que votre cours avec <strong>${res.adminProfile}</strong> commencera dans environ 6 heures.</p>
-                                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
-                                            <p style="margin: 0;"><strong>Date & Heure :</strong> ${slot.day} à ${slot.time}</p>
-                                        </div>
-                                        <p>À très vite !</p>
-                                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-                                        <p style="color: #666; font-size: 14px;"><em>Hello <strong>${res.fname}</strong>, this is a reminder that your class with <strong>${res.adminProfile}</strong> will start in about 6 hours.</em></p>
-                                    </div>
-                                `
-                            };
-                            transporter.sendMail(mailOptions, (err) => {
-                                if (err) console.error('[ERR] [EMAIL] Reminder failed for:', res.email, err.message);
-                                else console.log('[OK] [EMAIL] 6-hour reminder sent to:', res.email);
-                            });
-                        }
-                        slot.reminderSent = true;
-                        resUpdated = true;
-                    }
-                }
-            }
-            
-            // 2. Check for 1-week extension offer on multi-week reservations
-            if (res.recurring === 'weekly' && res.endDate && !res.extensionOffered) {
-                const endDateMs = new Date(`${res.endDate}T23:59:59`).getTime();
-                const diffEndMs = endDateMs - Date.now();
-                
-                // If ending within 7 days
-                if (diffEndMs > 0 && diffEndMs <= 7 * 24 * 60 * 60 * 1000) {
-                    const adminEmail = res.adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
-                    const transporter = transporters[res.adminProfile] || transporters['Dani'];
-                    
-                    if (res.email) {
-                        const mailOptions = {
-                            from: `"Réservation ${res.adminProfile}" <${adminEmail}>`,
-                            to: res.email,
-                            subject: `Votre réservation se termine bientôt / Reservation ending soon`,
-                            html: `
-                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
-                                    <h2 style="color: #ffc107; border-bottom: 2px solid #ffc107; padding-bottom: 10px;">Renouvellement / Renewal</h2>
-                                    <p>Bonjour <strong>${res.fname}</strong>,</p>
-                                    <p>Votre réservation hebdomadaire avec <strong>${res.adminProfile}</strong> se termine dans une semaine (le <strong>${res.endDate}</strong>).</p>
-                                    <p>Souhaitez-vous la prolonger ? Si oui, veuillez vous connecter sur notre site et nous le faire savoir, ou réservez directement de nouveaux créneaux !</p>
-                                    <p><a href="https://jr-english.onrender.com/" style="color: #fff; background-color: #198754; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">Accéder au site</a></p>
-                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-                                    <p style="color: #666; font-size: 14px;"><em>Hello <strong>${res.fname}</strong>, your weekly reservation is ending in one week. Would you like to extend it? Please log in to let us know!</em></p>
-                                </div>
-                            `
-                        };
-                        transporter.sendMail(mailOptions, (err) => {
-                            if (err) console.error('[ERR] [EMAIL] Extension offer failed for:', res.email, err.message);
-                            else console.log('[OK] [EMAIL] 1-week extension offer sent to:', res.email);
-                        });
-                    }
-                    res.extensionOffered = true;
-                    resUpdated = true;
-                }
-            }
-            
-            if (resUpdated) {
-                res.markModified('slots');
-                await res.save();
-                modifiedCount++;
-            }
-        }
-        if (modifiedCount > 0) {
-            console.log(`[OK] [CRON] Updated ${modifiedCount} reservations with sent reminders.`);
-        }
-    } catch (err) {
-        console.error('[ERR] [CRON] Automated reminders error:', err.message);
-    }
-});
-
 // --- API ROUTES ---
 
 // 0. Admin Login (JWT Generation)
@@ -330,31 +102,23 @@ app.post('/api/login', (req, res) => {
 app.get('/api/reservations', async (req, res) => {
     try {
         const { adminProfile } = req.query; // Get admin profile from query params
-        console.log('\n[REQ] [API] GET /api/reservations request received');
-        console.log('[USER] [API] Admin Profile:', adminProfile);
-        console.log('[NET] [API] MongoDB connection state:', mongoose.connection.readyState, '(0=disconnected, 1=connected, 2=connecting, 3=disconnecting)');
         
-        if (mongoose.connection.readyState !== 1) {
-            console.warn('[WARN] [API] WARNING: Not connected to MongoDB!');
+        let query = db.collection('reservations');
+        if (adminProfile) {
+            query = query.where('adminProfile', '==', adminProfile);
         }
         
-        // Build filter based on adminProfile
-        const filter = adminProfile ? { adminProfile } : {};
+        const snapshot = await query.get();
+        const reservations = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
         
-        console.log('[WAIT] [API] Querying Reservation.find()...');
-        const reservations = await Reservation.find(filter).sort({ createdAt: 1 });
-        console.log('[OK] [API] Successfully fetched', reservations.length, 'reservations for profile:', adminProfile || 'all');
+        // Sort safely in memory to prevent indexing errors
+        reservations.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        
         res.json(reservations);
     } catch (error) {
-        console.error('\n[ERR] [API] Failed to fetch reservations from MongoDB');
-        console.error('[LOC] [API] Error message:', error.message);
-        console.error('[LOC] [API] Error code:', error.code);
-        console.error('[LOC] [API] Error stack:', error.stack);
-        console.error('[NET] [API] Connection state at error:', mongoose.connection.readyState);
         res.status(500).json({ 
             message: "Error fetching reservations", 
-            error: error.message,
-            mongodb_connection_state: mongoose.connection.readyState
+            error: error.message
         });
     }
 });
@@ -362,53 +126,66 @@ app.get('/api/reservations', async (req, res) => {
 // 2. POST a new reservation
 app.post('/api/reservations', async (req, res) => {
     try {
-        console.log('\n[REQ] [API] POST /api/reservations request received');
-        console.log('[NET] [API] MongoDB connection state:', mongoose.connection.readyState);
-        console.log('[DATA] [API] Request body:', JSON.stringify(req.body).substring(0, 100), '...');
-        
         // Ensure adminProfile is included
         if (!req.body.adminProfile) {
             return res.status(400).json({ message: "adminProfile is required" });
         }
         
+        const newResData = { 
+            ...req.body, 
+            resId: req.body.resId || generateResId(),
+            createdAt: new Date().toISOString() 
+        };
+        
         // Auto-populate studentLinks from previous reservations for this email
-        if (req.body.email) {
-            const previousRes = await Reservation.findOne({ 
-                email: req.body.email, 
-                adminProfile: req.body.adminProfile, 
-                studentLinks: { $exists: true, $not: { $size: 0 } } 
-            });
+        if (newResData.email) {
+            const prevSnap = await db.collection('reservations').where('email', '==', newResData.email).where('adminProfile', '==', newResData.adminProfile).get();
+            const previousRes = prevSnap.docs.map(d => d.data()).find(r => r.studentLinks && r.studentLinks.length > 0);
             if (previousRes && previousRes.studentLinks) {
-                req.body.studentLinks = previousRes.studentLinks;
+                newResData.studentLinks = previousRes.studentLinks;
             }
         }
 
         // Upsert Permanent Client Record
         try {
-            const clientQuery = req.body.email ? { email: req.body.email } : (req.body.phone ? { phone: req.body.phone } : null);
-            if (clientQuery) {
-                await Client.findOneAndUpdate(
-                    { ...clientQuery, adminProfile: req.body.adminProfile },
-                    { $set: { fname: req.body.fname, lname: req.body.lname, adminProfile: req.body.adminProfile },
-                      $inc: { totalReservations: 1 },
-                      $max: { lastActive: new Date() } },
-                    { upsert: true, new: true }
-                );
+            const clientQueryVal = newResData.email || newResData.phone;
+            const queryField = newResData.email ? 'email' : 'phone';
+            if (clientQueryVal) {
+                const clientsRef = db.collection('clients');
+                const snap = await clientsRef.where(queryField, '==', clientQueryVal).where('adminProfile', '==', newResData.adminProfile).limit(1).get();
+                if (snap.empty) {
+                    await clientsRef.add({
+                        email: newResData.email || '',
+                        phone: newResData.phone || '',
+                        fname: newResData.fname,
+                        lname: newResData.lname,
+                        adminProfile: newResData.adminProfile,
+                        totalReservations: 1,
+                        lastActive: new Date().toISOString(),
+                        verified: true,
+                        createdAt: new Date().toISOString()
+                    });
+                } else {
+                    await snap.docs[0].ref.update({
+                        fname: newResData.fname,
+                        lname: newResData.lname,
+                        totalReservations: admin.firestore.FieldValue.increment(1),
+                        lastActive: new Date().toISOString()
+                    });
+                }
             }
         } catch (clientErr) {
             console.error('[ERR] [DB] Failed to upsert client record:', clientErr.message);
         }
 
-        const newReservation = new Reservation(req.body);
-        console.log('[WAIT] [API] Saving reservation to MongoDB for profile:', req.body.adminProfile);
-        const savedReservation = await newReservation.save();
-        console.log('[OK] [API] Successfully saved reservation with ID:', savedReservation._id);
+        const docRef = await db.collection('reservations').add(newResData);
+        const savedReservation = { _id: docRef.id, ...newResData };
         res.status(201).json(savedReservation);
 
         // --- ADMIN EMAIL NOTIFICATION LOGIC ---
         try {
-            const adminEmail = req.body.adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
-            const transporter = transporters[req.body.adminProfile] || transporters['Dani'];
+            const adminEmail = newResData.adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
+            const transporter = transporters[newResData.adminProfile] || transporters['Dani'];
             
             const formatTimeFR = (timeStr) => {
                 if (!timeStr || (!timeStr.includes('AM') && !timeStr.includes('PM'))) return timeStr;
@@ -436,7 +213,7 @@ app.post('/api/reservations', async (req, res) => {
                 from: `"Système de Réservation" <${adminEmail}>`,
                 to: adminEmail,
                 subject: `Nouvelle réservation [${savedReservation.resId}] : ${savedReservation.fname} ${savedReservation.lname}`,
-                text: `Bonjour ${req.body.adminProfile},\n\nVous avez reçu une nouvelle demande de réservation de la part de ${savedReservation.fname} ${savedReservation.lname}.\n\n` +
+                text: `Bonjour ${newResData.adminProfile},\n\nVous avez reçu une nouvelle demande de réservation de la part de ${savedReservation.fname} ${savedReservation.lname}.\n\n` +
                       `Détails du client :\n` +
                       `- ID Réservation : ${savedReservation.resId}\n` +
                       `- Email : ${savedReservation.email || 'Non renseigné'}\n` +
@@ -456,14 +233,9 @@ app.post('/api/reservations', async (req, res) => {
             console.error('[ERR] [EMAIL] Could not trigger email:', emailErr.message);
         }
     } catch (error) {
-        console.error('\n[ERR] [API] Error saving reservation');
-        console.error('[LOC] [API] Error message:', error.message);
-        console.error('[LOC] [API] Error stack:', error.stack);
-        console.error('[NET] [API] Connection state at error:', mongoose.connection.readyState);
         res.status(400).json({ 
             message: "Error saving reservation", 
-            error: error.message,
-            mongodb_connection_state: mongoose.connection.readyState
+            error: error.message
         });
     }
 });
@@ -471,33 +243,16 @@ app.post('/api/reservations', async (req, res) => {
 // 3. PUT (Update) an existing reservation (Status, Admin Notes, Edits, etc.)
 app.put('/api/reservations/:id', async (req, res) => {
     try {
-        console.log('\n[REQ] [API] PUT /api/reservations/:id request received');
-        console.log('[NET] [API] MongoDB connection state:', mongoose.connection.readyState);
-        console.log('[ID] [API] Reservation ID:', req.params.id);
-        console.log('[DATA] [API] Update data:', JSON.stringify(req.body).substring(0, 150), '...');
+        const docRef = db.collection('reservations').doc(req.params.id);
+        const doc = await docRef.get();
         
-        // Validate MongoDB ID format
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-            console.warn('[WARN] [API] Invalid MongoDB ID format:', req.params.id);
-            return res.status(400).json({ message: "Invalid reservation ID format" });
-        }
+        if (!doc.exists) return res.status(404).json({ message: "Reservation not found" });
         
-        // Merge update data with existing data (preserve fields not being updated)
+        const oldReservation = doc.data();
         const updateData = req.body;
-        console.log('[WAIT] [API] Finding and updating reservation...');
         
-        const oldReservation = await Reservation.findById(req.params.id);
-        
-        const updatedReservation = await Reservation.findByIdAndUpdate(
-            req.params.id, 
-            { $set: updateData }, // Use $set to update only provided fields
-            { new: true, runValidators: false } // Return updated document, don't re-validate on partial updates
-        );
-        
-        if (!updatedReservation) {
-            console.warn('[WARN] [API] Reservation not found for ID:', req.params.id);
-            return res.status(404).json({ message: "Reservation not found" });
-        }
+        await docRef.update(updateData);
+        const updatedReservation = { _id: docRef.id, ...oldReservation, ...updateData };
         
         // --- NEW: DEDICATED ADMIN REPLY EMAIL NOTIFICATION ---
         if (updateData.adminReply !== undefined && oldReservation && updateData.adminReply !== oldReservation.adminReply && updateData.adminReply.trim() !== '') {
@@ -635,19 +390,11 @@ app.put('/api/reservations/:id', async (req, res) => {
             }
         }
 
-        console.log('[OK] [API] Successfully updated reservation');
-        console.log('[DATA] [API] Updated fields:', Object.keys(updateData).join(', '));
         res.json(updatedReservation);
     } catch (error) {
-        console.error('\n[ERR] [API] Error updating reservation');
-        console.error('[LOC] [API] Error message:', error.message);
-        console.error('[LOC] [API] Error name:', error.name);
-        console.error('[LOC] [API] Error stack:', error.stack);
-        console.error('[NET] [API] Connection state at error:', mongoose.connection.readyState);
         res.status(400).json({ 
             message: "Error updating reservation", 
-            error: error.message,
-            mongodb_connection_state: mongoose.connection.readyState
+            error: error.message
         });
     }
 });
@@ -659,7 +406,13 @@ app.put('/api/student-links/:email', verifyAdmin, async (req, res) => {
         const { email } = req.params;
         const { links, notifyStudent, adminProfile } = req.body;
         const targetProfile = req.adminProfile || adminProfile; // Securely get the active coach from their token
-        await Reservation.updateMany({ email: email, adminProfile: targetProfile }, { $set: { studentLinks: links } });
+        
+        const snapshot = await db.collection('reservations').where('email', '==', email).where('adminProfile', '==', targetProfile).get();
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.update(doc.ref, { studentLinks: links });
+        });
+        await batch.commit();
         
         // Automatically notify student if a NEW link was added
         if (notifyStudent && targetProfile) {
@@ -703,10 +456,14 @@ app.put('/api/student-links/:email', verifyAdmin, async (req, res) => {
 // 6. Get all clients (Permanent Client Database)
 app.get('/api/clients', verifyAdmin, async (req, res) => {
     try {
-        console.log('\n[REQ] [API] GET /api/clients request received');
-        const filter = req.adminProfile ? { adminProfile: req.adminProfile } : {};
-        const clients = await Client.find(filter).sort({ lastActive: -1 });
-        console.log('[OK] [API] Successfully fetched', clients.length, 'clients');
+        let query = db.collection('clients');
+        if (req.adminProfile) {
+            query = query.where('adminProfile', '==', req.adminProfile);
+        }
+        const snapshot = await query.get();
+        const clients = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
+        clients.sort((a, b) => new Date(b.lastActive || 0) - new Date(a.lastActive || 0));
+        
         res.json(clients);
     } catch (error) {
         console.error('[ERR] [API] Error fetching clients:', error.message);
@@ -758,16 +515,23 @@ app.post('/api/auth/request-code', async (req, res) => {
         const { email, adminProfile } = req.body;
         if (!email || !adminProfile) return res.status(400).json({ error: "Missing fields" });
         
-        let client = await Client.findOne({ email, adminProfile });
-        if (client && client.verified) return res.json({ verified: true });
+        const clientSnap = await db.collection('clients').where('email', '==', email).where('adminProfile', '==', adminProfile).limit(1).get();
+        const clientDoc = clientSnap.empty ? null : clientSnap.docs[0];
+        const clientData = clientDoc ? clientDoc.data() : null;
+        
+        if (clientData && clientData.verified) return res.json({ verified: true });
         
         const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const codeExpires = new Date(Date.now() + 15 * 60000); // 15 mins
+        const codeExpires = new Date(Date.now() + 15 * 60000).toISOString(); // 15 mins
         
-        if (!client) client = new Client({ email, adminProfile, verified: false });
-        client.verificationCode = code;
-        client.codeExpires = codeExpires;
-        await client.save();
+        if (!clientDoc) {
+            await db.collection('clients').add({
+                email, adminProfile, verified: false, verificationCode: code, codeExpires,
+                createdAt: new Date().toISOString(), lastActive: new Date().toISOString(), totalReservations: 0
+            });
+        } else {
+            await clientDoc.ref.update({ verificationCode: code, codeExpires });
+        }
         
         const transporter = transporters[adminProfile] || transporters['Dani'];
         const adminEmail = adminProfile === 'Martine' ? 'mjuillan38@gmail.com' : 'kendanine8@gmail.com';
@@ -793,12 +557,17 @@ app.post('/api/auth/request-code', async (req, res) => {
 app.post('/api/auth/verify-code', async (req, res) => {
     try {
         const { email, adminProfile, code } = req.body;
-        const client = await Client.findOne({ email, adminProfile });
-        if (!client) return res.status(404).json({ error: "Client not found" });
-        if (client.verified) return res.json({ success: true });
-        if (client.verificationCode !== code || new Date() > client.codeExpires) return res.status(400).json({ error: "Code invalide ou expiré / Invalid or expired code" });
-        client.verified = true; client.verificationCode = ''; client.codeExpires = null;
-        await client.save();
+        
+        const clientSnap = await db.collection('clients').where('email', '==', email).where('adminProfile', '==', adminProfile).limit(1).get();
+        if (clientSnap.empty) return res.status(404).json({ error: "Client not found" });
+        
+        const clientDoc = clientSnap.docs[0];
+        const clientData = clientDoc.data();
+        
+        if (clientData.verified) return res.json({ success: true });
+        if (clientData.verificationCode !== code || new Date() > new Date(clientData.codeExpires)) return res.status(400).json({ error: "Code invalide ou expiré / Invalid or expired code" });
+        
+        await clientDoc.ref.update({ verified: true, verificationCode: '', codeExpires: null });
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -831,61 +600,37 @@ function verifyAdmin(req, res, next) {
 app.use((err, req, res, next) => {
     console.error('\n[ERR] [GLOBAL-ERROR] Unhandled error caught');
     console.error('[LOC] [GLOBAL-ERROR] Error message:', err.message);
-    console.error('[LOC] [GLOBAL-ERROR] Error stack:', err.stack);
-    console.error('[NET] [GLOBAL-ERROR] MongoDB connection state:', mongoose.connection.readyState);
     res.status(500).json({
         message: 'Internal server error',
-        error: err.message,
-        mongodb_connected: mongoose.connection.readyState === 1
+        error: err.message
     });
 });
 
 // 4. DELETE a reservation
 app.delete('/api/reservations/:id', verifyAdmin, async (req, res) => {
     try {
-        console.log('\n[REQ] [API] DELETE /api/reservations/:id request received');
-        console.log('[NET] [API] MongoDB connection state:', mongoose.connection.readyState);
-        console.log('[ID] [API] Reservation ID:', req.params.id);
+        const docRef = db.collection('reservations').doc(req.params.id);
+        const doc = await docRef.get();
+        if (!doc.exists) return res.status(404).json({ message: "Reservation not found" });
         
-        const deletedReservation = await Reservation.findByIdAndDelete(req.params.id);
-        if (!deletedReservation) {
-            console.warn('[WARN] [API] Reservation not found for deletion, ID:', req.params.id);
-            return res.status(404).json({ message: "Reservation not found" });
-        }
+        await docRef.delete();
         
-        console.log('[OK] [API] Successfully deleted reservation:', req.params.id);
         res.json({ message: "Reservation deleted successfully" });
     } catch (error) {
-        console.error('\n[ERR] [API] Error deleting reservation');
-        console.error('[LOC] [API] Error message:', error.message);
-        console.error('[LOC] [API] Error stack:', error.stack);
-        console.error('[NET] [API] Connection state at error:', mongoose.connection.readyState);
         res.status(500).json({ 
             message: "Error deleting reservation", 
-            error: error.message,
-            mongodb_connection_state: mongoose.connection.readyState
+            error: error.message
         });
     }
 });
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
-    const mongoState = mongoose.connection.readyState;
-    const mongoStateNames = {
-        0: 'disconnected',
-        1: 'connected',
-        2: 'connecting',
-        3: 'disconnecting'
-    };
     console.log('\n[REQ] [HEALTH] Health check requested');
-    console.log(`[NET] [HEALTH] MongoDB state: ${mongoStateNames[mongoState]} (${mongoState})`);
     
     res.json({
         status: 'ok',
         server: 'running',
-        mongodb_connected: mongoState === 1,
-        mongodb_state: mongoStateNames[mongoState],
-        mongodb_state_code: mongoState,
         timestamp: new Date().toISOString()
     });
 });
@@ -894,13 +639,13 @@ app.get('/api/health', (req, res) => {
 app.get('/api/stats', async (req, res) => {
     try {
         const { adminProfile } = req.query; // Get admin profile from query params
-        console.log('\n[REQ] [API] GET /api/stats request received');
-        console.log('[USER] [API] Admin Profile:', adminProfile);
         
-        // Build filter based on adminProfile
-        const filter = adminProfile ? { adminProfile } : {};
-        
-        const reservations = await Reservation.find(filter);
+        let query = db.collection('reservations');
+        if (adminProfile) {
+            query = query.where('adminProfile', '==', adminProfile);
+        }
+        const snapshot = await query.get();
+        const reservations = snapshot.docs.map(d => d.data());
         
         const stats = {
             total: reservations.length,
@@ -913,10 +658,8 @@ app.get('/api/stats', async (req, res) => {
             weekly: reservations.filter(r => r.recurring === 'weekly').length
         };
         
-        console.log('[OK] [API] Stats calculated for profile', adminProfile || 'all', ':', JSON.stringify(stats));
         res.json(stats);
     } catch (error) {
-        console.error('[ERR] [API] Error calculating stats:', error.message);
         res.status(500).json({ message: "Error calculating stats", error: error.message });
     }
 });
@@ -925,17 +668,16 @@ app.get('/api/stats', async (req, res) => {
 app.get('/api/reservations-by-email/:email', async (req, res) => {
     try {
         const { adminProfile } = req.query;
-        console.log('\n[REQ] [API] GET /api/reservations-by-email/:email request for:', req.params.email);
-        console.log('[USER] [API] Admin Profile:', adminProfile);
         
-        const filter = { email: req.params.email };
-        if (adminProfile) filter.adminProfile = adminProfile;
+        let query = db.collection('reservations').where('email', '==', req.params.email);
+        if (adminProfile) query = query.where('adminProfile', '==', adminProfile);
         
-        const reservations = await Reservation.find(filter).sort({ createdAt: -1 });
-        console.log('[OK] [API] Found', reservations.length, 'reservations for email');
+        const snapshot = await query.get();
+        const reservations = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
+        reservations.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        
         res.json(reservations);
     } catch (error) {
-        console.error('[ERR] [API] Error fetching by email:', error.message);
         res.status(500).json({ message: "Error fetching reservations", error: error.message });
     }
 });
@@ -943,17 +685,16 @@ app.get('/api/reservations-by-email/:email', async (req, res) => {
 app.get('/api/reservations-by-phone/:phone', async (req, res) => {
     try {
         const { adminProfile } = req.query;
-        console.log('\n[REQ] [API] GET /api/reservations-by-phone/:phone request for:', req.params.phone);
-        console.log('[USER] [API] Admin Profile:', adminProfile);
         
-        const filter = { phone: req.params.phone };
-        if (adminProfile) filter.adminProfile = adminProfile;
+        let query = db.collection('reservations').where('phone', '==', req.params.phone);
+        if (adminProfile) query = query.where('adminProfile', '==', adminProfile);
         
-        const reservations = await Reservation.find(filter).sort({ createdAt: -1 });
-        console.log('[OK] [API] Found', reservations.length, 'reservations for phone');
+        const snapshot = await query.get();
+        const reservations = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
+        reservations.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        
         res.json(reservations);
     } catch (error) {
-        console.error('[ERR] [API] Error fetching by phone:', error.message);
         res.status(500).json({ message: "Error fetching reservations", error: error.message });
     }
 });
@@ -961,27 +702,16 @@ app.get('/api/reservations-by-phone/:phone', async (req, res) => {
 // Get single reservation by ID
 app.get('/api/reservations/:id', async (req, res) => {
     try {
-        const { adminProfile } = req.query;
-        console.log('\n[REQ] [API] GET /api/reservations/:id request for ID:', req.params.id);
-        console.log('[USER] [API] Admin Profile:', adminProfile);
+        const docRef = db.collection('reservations').doc(req.params.id);
+        const doc = await docRef.get();
         
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-            return res.status(400).json({ message: "Invalid reservation ID format" });
-        }
-        
-        const filter = { _id: req.params.id };
-        if (adminProfile) filter.adminProfile = adminProfile;
-        
-        const reservation = await Reservation.findOne(filter);
-        if (!reservation) {
-            console.warn('[WARN] [API] Reservation not found for ID:', req.params.id);
+        if (!doc.exists) {
             return res.status(404).json({ message: "Reservation not found" });
         }
         
-        console.log('[OK] [API] Found reservation');
+        const reservation = { _id: doc.id, ...doc.data() };
         res.json(reservation);
     } catch (error) {
-        console.error('[ERR] [API] Error fetching reservation:', error.message);
         res.status(500).json({ message: "Error fetching reservation", error: error.message });
     }
 });

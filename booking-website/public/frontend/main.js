@@ -1,11 +1,7 @@
 // Global API base resolver and fetch interceptor
 window.getApiBase = function() {
-    // Force backend port 3000 for local development (handles localhost and local network IPs)
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '5000' || location.port === '5500') {
-        return location.protocol + '//' + location.hostname + ':3000';
-    }
-        // Production Backend URL (Same domain via Firebase Cloud Functions)
-        return window.API_BASE || '';
+    // Backend URL (Same domain via Firebase Hosting rewrites for both local and live)
+    return window.API_BASE || '';
 };
 (function(origFetch){
     window.fetch = function(url, opts) {
