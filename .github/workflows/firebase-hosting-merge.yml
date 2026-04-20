@@ -1,0 +1,32 @@
+name: Deploy to Firebase Hosting on merge
+'on':
+  push:
+    branches:
+      - main
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 1. Install packages and Deploy the Backend (Firestore/Functions)
+      - name: Deploy Backend Functions
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKING_WEBSITE_DE6CA }}' > $GITHUB_WORKSPACE/gcp-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/gcp-key.json
+          cd functions
+          npm install
+          npx --yes firebase-tools deploy --only functions --project booking-website-de6ca --non-interactive
+          
+      # 2. Deploy the Frontend (HTML/CSS/JS)
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOOKING_WEBSITE_DE6CA }}'
+          channelId: live
+          projectId: booking-website-de6ca
